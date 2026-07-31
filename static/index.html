@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giao diện Quản lý Cào Dữ liệu - Antigravity Suite</title>
+    <!-- Google Fonts Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Lucide-like Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- TOP HEADER BAR -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo-icon"><i class="fa-solid fa-layer-group"></i></div>
+                <div class="brand-text">
+                    <h1>CRAWL DATA TOOL <span>v3.0</span></h1>
+                    <p>Hệ thống Quản lý Cào Dữ liệu & Tìm kiếm Email Tự động</p>
+                </div>
+            </div>
+            <div class="header-status">
+                <div class="status-pill online">
+                    <span class="dot"></span>
+                    <span id="server-status-text">Server: Sẵn sàng</span>
+                </div>
+                <div class="status-pill worker-count">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span id="active-worker-text">0 Luồng chạy</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- NAVIGATION TABS -->
+        <nav class="app-nav">
+            <button class="nav-tab active" data-tab="tab-dashboard">
+                <i class="fa-solid fa-gauge-high"></i> Dashboard & Console
+            </button>
+            <button class="nav-tab" data-tab="tab-config">
+                <i class="fa-solid fa-sliders"></i> Quản lý Cấu hình
+            </button>
+            <button class="nav-tab" data-tab="tab-data">
+                <i class="fa-solid fa-table-list"></i> Dữ liệu & Xuất File
+            </button>
+        </nav>
+
+        <!-- TAB CONTENT AREA -->
+        <main class="app-main">
+            <!-- TAB 1: DASHBOARD & CONSOLE -->
+            <section id="tab-dashboard" class="tab-pane active">
+                <!-- STATS CARDS GRID -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fa-solid fa-hotel"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-total-records">0</span>
+                            <span class="stat-label">Tổng số Địa điểm</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fa-solid fa-envelope"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-email-records">0</span>
+                            <span class="stat-label">Đã có Email</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fa-solid fa-tags"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-category-records">0</span>
+                            <span class="stat-label">Đã có Category</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fa-solid fa-phone"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-phone-records">0</span>
+                            <span class="stat-label">Số Điện Thoại</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTROL PANEL & ACTIONS -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-bolt"></i> Bảng Điều khiển Công cụ (Controls)</h2>
+                    </div>
+                    <div class="action-grid">
+                        <!-- Tool 1: Map Scraper -->
+                        <div class="action-card" id="card-map-scraper">
+                            <div class="action-header">
+                                <div class="action-title">
+                                    <i class="fa-solid fa-map-location-dot"></i>
+                                    <div>
+                                        <h3>Cào Google Maps</h3>
+                                        <p>Thu thập địa điểm</p>
+                                    </div>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-map-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                  
+                                    <span class="file-name" id="file-output-map">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-map">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-map">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill map-color" id="prog-bar-map" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-primary" id="btn-start-map-dual">
+                                    <i class="fa-solid fa-play"></i> Chạy 2 Luồng (Song song)
+                                </button>
+                                <button class="btn btn-danger hidden" id="btn-stop-map">
+                                    <i class="fa-solid fa-square"></i> Dừng cào Maps
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tool 2: Email Harvester -->
+                        <div class="action-card" id="card-email-harvester">
+                            <div class="action-header">
+                                <div class="action-title">
+                                    <i class="fa-solid fa-at"></i>
+                                    <div>
+                                        <h3>Quét Email</h3>
+                                        <p>Tìm email</p>
+                                    </div>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-email-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                   
+                                    <p class="file-name" id="file-output-email">Chưa chạy</p>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-email">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-email">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill email-color" id="prog-bar-email" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-success" id="btn-start-email-dual">
+                                    <i class="fa-solid fa-play"></i> Chạy Quét Email (2 Luồng)
+                                </button>
+                                <button class="btn btn-danger hidden" id="btn-stop-email">
+                                    <i class="fa-solid fa-square"></i> Dừng quét Email
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tool 3: Category Repairer -->
+                        <div class="action-card" id="card-category-repairer">
+                            <div class="action-header">
+                                <div class="action-title">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    <div>
+                                        <h3>Bổ sung CategoryName</h3>
+                                        <p>Dò loại hình (5-star hotel, ...)</p>
+                                    </div>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-cat-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                  
+                                    <span class="file-name" id="file-output-cat">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-cat">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-cat">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill cat-color" id="prog-bar-cat" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-info" id="btn-start-cat-repair">
+                                    <i class="fa-solid fa-play"></i> Dò Category (2 Luồng)
+                                </button>
+                                <button class="btn btn-danger hidden" id="btn-stop-cat">
+                                    <i class="fa-solid fa-square"></i> Dừng dò Category
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tool 4: Info Repairer -->
+                        <div class="action-card" id="card-info-repairer">
+                            <div class="action-header">
+                                <div class="action-title">
+                                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                                    <div>
+                                        <h3>Sửa bản ghi lỗi N/A</h3>
+                                        <p>Khôi phục địa chỉ, SĐT</p>
+                                    </div>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-info-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                   
+                                    <span class="file-name" id="file-output-info">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-info">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-info">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill info-color" id="prog-bar-info" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-secondary" id="btn-start-info-repair">
+                                    <i class="fa-solid fa-wrench"></i> Sửa dữ liệu N/A
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LIVE CONSOLE LOGS -->
+                <div class="console-section">
+                    <div class="console-header">
+                        <div class="console-title">
+                            <i class="fa-solid fa-terminal"></i>
+                            <span>Nhật ký Chạy Real-Time (Live Console Logs)</span>
+                        </div>
+                        <div class="console-actions">
+                            <label class="autoscroll-toggle">
+                                <input type="checkbox" id="chk-autoscroll" checked> Tự cuộn
+                            </label>
+                            <button class="btn-sm btn-outline" id="btn-clear-console">
+                                <i class="fa-solid fa-trash-can"></i> Xóa log
+                            </button>
+                        </div>
+                    </div>
+                    <div class="console-body" id="console-output">
+                        <div class="log-line sys">[*] Hệ thống Web Dashboard sẵn sàng. Vui lòng chọn tính năng khởi chạy...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: CONFIG MANAGER -->
+            <section id="tab-config" class="tab-pane">
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-sliders"></i> Quản lý Cấu hình (config.json)</h2>
+                        <button class="btn btn-success" id="btn-save-config">
+                            <i class="fa-solid fa-floppy-disk"></i> Lưu Cấu hình 1-Click
+                        </button>
+                    </div>
+
+                        <!-- SERVICE MODE SELECTION CARD -->
+                            <label class="config-label">
+                                <span><i class="fa-solid fa-layer-group"></i> Chọn Dịch vụ Cần Cào dữ liệu (`target_service`)</span>
+                                <span class="badge" id="service-status-badge">Đang Bật: Khách sạn</span>
+                            </label>
+                            <p class="config-desc">Chọn 1 trong 3 ngành dịch vụ (Khi BẬT 1 dịch vụ, 2 dịch vụ còn lại sẽ tự động TẮT). <b>Nếu TẮT cả 3 dịch vụ:</b> Tool sẽ CÀO TẤT CẢ địa điểm tìm thấy mà không lọc từ khóa tên.</p>
+                            <div class="service-toggle-grid">
+                                <div class="service-toggle-item active" id="item-service-hotel">
+                                    <div class="service-info">
+                                        <i class="fa-solid fa-hotel service-icon text-hotel"></i>
+                                        <div>
+                                            <h4>Khách sạn & Lưu trú</h4>
+                                            <p>Hotel, Motel,...</p>
+                                        </div>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" class="service-toggle" id="cfg-service-hotel" data-service="hotel" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="service-toggle-item" id="item-service-restaurant">
+                                    <div class="service-info">
+                                        <i class="fa-solid fa-utensils service-icon text-restaurant"></i>
+                                        <div>
+                                            <h4>Nhà hàng & Ăn uống</h4>
+                                            <p>Nhà hàng, Quán ăn,...</p>
+                                        </div>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" class="service-toggle" id="cfg-service-restaurant" data-service="restaurant">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="service-toggle-item" id="item-service-spa">
+                                    <div class="service-info">
+                                        <i class="fa-solid fa-spa service-icon text-spa"></i>
+                                        <div>
+                                            <h4>Spa, Massage & Làm đẹp</h4>
+                                            <p>Spa, Massage,...</p>
+                                        </div>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" class="service-toggle" id="cfg-service-spa" data-service="spa">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-card full-width">
+                            <label class="config-label">
+                                <i class="fa-solid fa-list-check"></i> Danh sách Từ khóa Tìm kiếm (`search_queries`)
+                                <span class="badge" id="query-count-badge">0 từ khóa</span>
+                            </label>
+                            <p class="config-desc">Nhập mỗi từ khóa tìm kiếm trên 1 dòng (ví dụ: "khách sạn ở Quận 1", "homestay Đà Lạt"...)</p>
+                            <textarea id="cfg-search-queries" rows="15" placeholder="Nhập từ khóa tìm kiếm tại đây..."></textarea>
+                        </div>
+
+                       
+                             <div class="config-card">
+                            <label class="config-label"><i class="fa-solid fa-file-export"></i> Tệp Kết quả Đích (`output_file`)</label>
+                            <input type="text" id="cfg-output-file" placeholder="hotels.json">
+                            <p class="config-desc">Tệp JSON dùng lưu kết quả cào</p>
+                        </div>
+
+                        <div class="config-card">
+                            <label class="config-label"><i class="fa-solid fa-hashtag"></i> Số kết quả tối đa (`max_results`)</label>
+                            <input type="number" id="cfg-max-results" placeholder="200">
+                            <p class="config-desc">Giới hạn số địa điểm tối đa cần cào</p>
+                        </div>
+
+                        <div class="config-card">
+                            <label class="config-label"><i class="fa-solid fa-location-dot"></i> Giới hạn Tỉnh / Thành phố (`target_province`)</label>
+                            <select id="cfg-target-province" style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color, #334155); background-color: var(--bg-card-input, #1e293b); color: #f8fafc; font-size: 0.95rem; outline: none;">
+                                <option value="all">Tất cả các tỉnh thành (Tắt lọc khu vực)</option>
+                                <option value="An Giang">An Giang (Kinh tuyến 104°45′)</option>
+                                <option value="Bắc Ninh">Bắc Ninh (Kinh tuyến 107°00′)</option>
+                                <option value="Cà Mau">Cà Mau (Kinh tuyến 104°30′)</option>
+                                <option value="Cao Bằng">Cao Bằng (Kinh tuyến 105°45′)</option>
+                                <option value="Đắc Lắk">Đắc Lắk (Kinh tuyến 108°30′)</option>
+                                <option value="Điện Biên">Điện Biên (Kinh tuyến 103°00′)</option>
+                                <option value="Đồng Nai">Đồng Nai (Kinh tuyến 107°45′)</option>
+                                <option value="Đồng Tháp">Đồng Tháp (Kinh tuyến 105°00′)</option>
+                                <option value="Gia Lai">Gia Lai (Kinh tuyến 108°15′)</option>
+                                <option value="Hà Tĩnh">Hà Tĩnh (Kinh tuyến 105°30′)</option>
+                                <option value="Hưng Yên">Hưng Yên (Kinh tuyến 105°30′)</option>
+                                <option value="Khánh Hòa">Khánh Hòa (Kinh tuyến 108°15′)</option>
+                                <option value="Lai Châu">Lai Châu (Kinh tuyến 104°45′)</option>
+                                <option value="Lạng Sơn">Lạng Sơn (Kinh tuyến 107°15′)</option>
+                                <option value="Lào Cai">Lào Cai (Kinh tuyến 104°45′)</option>
+                                <option value="Lâm Đồng">Lâm Đồng (Kinh tuyến 107°45′)</option>
+                                <option value="Nghệ An">Nghệ An (Kinh tuyến 104°45′)</option>
+                                <option value="Ninh Bình">Ninh Bình (Kinh tuyến 105°00′)</option>
+                                <option value="Phú Thọ">Phú Thọ (Kinh tuyến 104°45′)</option>
+                                <option value="Quảng Ngãi">Quảng Ngãi (Kinh tuyến 108°00′)</option>
+                                <option value="Quảng Ninh">Quảng Ninh (Kinh tuyến 107°45′)</option>
+                                <option value="Quảng Trị">Quảng Trị (Kinh tuyến 106°00′)</option>
+                                <option value="Sơn La">Sơn La (Kinh tuyến 104°00′)</option>
+                                <option value="Tây Ninh">Tây Ninh (Kinh tuyến 105°45′)</option>
+                                <option value="Thái Nguyên">Thái Nguyên (Kinh tuyến 106°30′)</option>
+                                <option value="Thanh Hóa">Thanh Hóa (Kinh tuyến 105°00′)</option>
+                                <option value="Thành phố Cần Thơ">Thành phố Cần Thơ (Kinh tuyến 105°00′)</option>
+                                <option value="Thành phố Đà Nẵng">Thành phố Đà Nẵng (Kinh tuyến 107°45′)</option>
+                                <option value="Thành phố Hà Nội">Thành phố Hà Nội (Kinh tuyến 105°00′)</option>
+                                <option value="Thành phố Hải Phòng">Thành phố Hải Phòng (Kinh tuyến 105°45′)</option>
+                                <option value="Thành phố Hồ Chí Minh">Thành phố Hồ Chí Minh (Kinh tuyến 105°45′)</option>
+                                <option value="Thành phố Huế">Thành phố Huế (Kinh tuyến 107°00′)</option>
+                                <option value="Tuyên Quang">Tuyên Quang (Kinh tuyến 106°00′)</option>
+                                <option value="Vĩnh Long">Vĩnh Long (Kinh tuyến 105°30′)</option>
+                            </select>
+                            <p class="config-desc">Lọc địa điểm nằm đúng trong phạm vi Tỉnh/Thành phố</p>
+                        </div>
+                    
+
+                       
+
+                        <!-- TOGGLE SWITCHES -->
+                        <div class="config-card toggle-group">
+                            
+
+                            <div class="toggle-item">
+                                <div>
+                                    <h4>Quét lại Toàn bộ Email (`findAll`)</h4>
+                                    <p>Quét lại email cho tất cả bản ghi chưa có email</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="cfg-find-all">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="toggle-item">
+                                <div>
+                                    <h4>Chỉ Cào Tiếp (`findNext`)</h4>
+                                    <p>Bỏ qua các địa điểm đã quét (`isFlag = true`)</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="cfg-find-next">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: DATA EXPLORER & EXPORT -->
+            <section id="tab-data" class="tab-pane">
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-table"></i> Trình duyệt Dữ liệu Real-Time</h2>
+                        <div class="export-actions">
+                            <button class="btn btn-excel" id="btn-export-excel">
+                                <i class="fa-solid fa-file-excel"></i> Xuất Excel (.xlsx)
+                            </button>
+                            <button class="btn btn-outline" id="btn-export-csv">
+                                <i class="fa-solid fa-file-csv"></i> Xuất CSV
+                            </button>
+                            <button class="btn btn-outline" id="btn-download-json">
+                                <i class="fa-solid fa-file-code"></i> Tải JSON
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SEARCH & FILTER BAR -->
+                    <div class="filter-bar">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="data-search-input" placeholder="Tìm kiếm theo tên, số điện thoại, địa chỉ...">
+                        </div>
+                        <select id="data-filter-email" class="select-input">
+                            <option value="all">Tất cả email (Có & Chưa có)</option>
+                            <option value="has_email">Chỉ hiện địa điểm ĐÃ CÓ Email</option>
+                            <option value="no_email">Chỉ hiện địa điểm CHƯA CÓ Email</option>
+                        </select>
+                        <select id="data-filter-category" class="select-input">
+                            <option value="all">Tất cả CategoryName</option>
+                        </select>
+                        <button class="btn-sm btn-secondary" id="btn-refresh-table">
+                            <i class="fa-solid fa-rotate-right"></i> Làm mới
+                        </button>
+                    </div>
+
+                    <!-- DATA TABLE -->
+                    <div class="table-responsive">
+                        <table class="data-table" id="records-table">
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Tên Khách sạn / Địa điểm</th>
+                                    <th>CategoryName</th>
+                                    <th>Email</th>
+                                    <th>Số điện thoại</th>
+                                    <th>Địa chỉ</th>
+                                    <th>Đánh giá</th>
+                                    <th>Website</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <tr>
+                                    <td colspan="8" class="text-center">Đang tải dữ liệu...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- PAGINATION BAR -->
+                    <div class="pagination-bar">
+                        <div class="pagination-info" id="pagination-info">
+                            Hiển thị 0 - 0 trong tổng số 0 bản ghi
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="btn-sm btn-outline" id="btn-prev-page" disabled>
+                                <i class="fa-solid fa-chevron-left"></i> Trang trước
+                            </button>
+                            <span class="page-indicator" id="page-indicator">Trang 1 / 1</span>
+                            <button class="btn-sm btn-outline" id="btn-next-page" disabled>
+                                Trang sau <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

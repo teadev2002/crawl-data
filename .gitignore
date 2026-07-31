@@ -1,0 +1,30 @@
+# Python Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python Cache & Compiled Files
+__pycache__/
+*.py[cod]
+*$py.class
+*.tmp
+*.tmp_*
+
+# Chrome User Data Profiles
+ChromeUserData/
+User Data/
+
+# User Data Files & Results (Bảo vệ dữ liệu cào riêng tư của người dùng)
+*.json
+!config.json.example
+
+# State Files
+harvester_state.json
+map_scraper_state.json
+temp_emails_*.json
+
+# OS Generated Files
+Thumbs.db
+Desktop.ini
+.DS_Store
