@@ -115,9 +115,23 @@
                                     <div class="progress-bar-fill map-color" id="prog-bar-map" style="width: 0%;"></div>
                                 </div>
                             </div>
+                            <div class="thread-selector-box" style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color, #334155);">
+                                <span style="font-size: 0.85rem; color: #94a3b8; font-weight: 500;">
+                                <div style="display: flex; gap: 0.75rem;">
+                                    <label style="cursor: pointer; font-size: 0.85rem; color: #cbd5e1; display: flex; align-items: center; gap: 0.3rem;">
+                                        <input type="radio" name="map-thread-count" value="3"checked> 3 Luồng
+                                    </label>
+                                    <label style="cursor: pointer; font-size: 0.85rem; color: #cbd5e1; display: flex; align-items: center; gap: 0.3rem;">
+                                        <input type="radio" name="map-thread-count" value="4"> 4 Luồng
+                                    </label>
+                                    <label style="cursor: pointer; font-size: 0.85rem; color: #cbd5e1; display: flex; align-items: center; gap: 0.3rem;">
+                                        <input type="radio" name="map-thread-count" value="5" > 5 Luồng
+                                    </label>
+                                </div>
+                            </div>
                             <div class="action-controls">
-                                <button class="btn btn-primary" id="btn-start-map-dual">
-                                    <i class="fa-solid fa-play"></i> Chạy 2 Luồng (Song song)
+                                <button class="btn btn-primary" id="btn-start-map-action">
+                                    <i class="fa-solid fa-rocket"></i> Chạy 5 Luồng (Song song)
                                 </button>
                                 <button class="btn btn-danger hidden" id="btn-stop-map">
                                     <i class="fa-solid fa-square"></i> Dừng cào Maps

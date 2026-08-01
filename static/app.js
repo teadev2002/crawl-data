@@ -73,20 +73,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapActiveThreads = new Set();
 
     function parseLogProgress(msg) {
-        // Quản lý trạng thái 2 luồng TOP & BOTTOM của MAP SCRAPER
-        if (msg.includes('[MAP_TOP] Đã khởi chạy')) {
-            mapActiveThreads.add('top');
+        // Quản lý trạng thái 5 luồng (P1 -> P5) hoặc 2 luồng (TOP & BOTTOM) của MAP SCRAPER
+        const workerMatchStart = msg.match(/\[MAP_(P[1-5]|TOP|BOTTOM)\] Đã khởi chạy/i);
+        if (workerMatchStart) {
+            mapActiveThreads.add(workerMatchStart[1].toLowerCase());
             updateToolStatus('map', 'running', 'Đang cào');
         }
-        if (msg.includes('[MAP_BOTTOM] Đã khởi chạy')) {
-            mapActiveThreads.add('bottom');
-            updateToolStatus('map', 'running', 'Đang cào');
-        }
-        if (msg.includes('[MAP_TOP]') && msg.includes('đã hoàn thành')) {
-            mapActiveThreads.delete('top');
-        }
-        if (msg.includes('[MAP_BOTTOM]') && msg.includes('đã hoàn thành')) {
-            mapActiveThreads.delete('bottom');
+        const workerMatchFinish = msg.match(/\[MAP_(P[1-5]|TOP|BOTTOM)\]/i) && msg.includes('đã hoàn thành');
+        if (workerMatchFinish) {
+            const finishedWorker = msg.match(/\[MAP_(P[1-5]|TOP|BOTTOM)\]/i)[1].toLowerCase();
+            mapActiveThreads.delete(finishedWorker);
         }
 
         // Tự động nhận diện Tên File Output thực tế từ WebSocket Log khi bất kỳ tool nào khởi chạy
@@ -482,7 +478,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // SCRAPER CONTROLS
     async function triggerTask(actionPath) {
         try {
-            const res = await fetch(`/api/tasks/${actionPath}`, { method: 'POST' });
+            let res = await fetch(`/api/tasks/${actionPath}`, { method: 'POST' });
+            if (!res.ok && actionPath === 'start/map_5way') {
+                res = await fetch(`/api/tasks/start/map_dual`, { method: 'POST' });
+            }
             const data = await res.json();
             appendLog(`[*] ${data.message}`, 'sys');
         } catch (err) {
@@ -499,18 +498,42 @@ document.addEventListener('DOMContentLoaded', () => {
         return val;
     }
 
-    document.getElementById('btn-start-map-dual').addEventListener('click', () => {
-        const maxResultsEl = document.getElementById('cfg-max-results');
-        if (maxResultsEl) {
-            const currentMax = parseInt(maxResultsEl.value) || progressTotals.map;
-            progressTotals.map = currentMax;
-            updateToolProgress('map', progressCurrents.map, progressTotals.map);
-        }
-        const curFile = getCurrentOutputFile();
-        setToolFile('map', curFile);
-        updateToolStatus('map', 'running', 'Đang cào');
-        triggerTask('start/map_dual');
+    // Cấu hình lựa chọn Radio số luồng cào Maps (3, 4, 5 luồng)
+    const mapThreadRadios = document.querySelectorAll('input[name="map-thread-count"]');
+    const btnStartMap = document.getElementById('btn-start-map-action') || document.getElementById('btn-start-map-5way') || document.getElementById('btn-start-map-dual');
+    
+    function getSelectedMapThreads() {
+        let val = '5';
+        mapThreadRadios.forEach(radio => {
+            if (radio.checked) val = radio.value;
+        });
+        return val;
+    }
+
+    mapThreadRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            const num = getSelectedMapThreads();
+            if (btnStartMap) {
+                btnStartMap.innerHTML = `<i class="fa-solid fa-rocket"></i> Chạy ${num} Luồng (Song song)`;
+            }
+        });
     });
+
+    if (btnStartMap) {
+        btnStartMap.addEventListener('click', () => {
+            const maxResultsEl = document.getElementById('cfg-max-results');
+            if (maxResultsEl) {
+                const currentMax = parseInt(maxResultsEl.value) || progressTotals.map;
+                progressTotals.map = currentMax;
+                updateToolProgress('map', progressCurrents.map, progressTotals.map);
+            }
+            const curFile = getCurrentOutputFile();
+            setToolFile('map', curFile);
+            updateToolStatus('map', 'running', 'Đang cào');
+            const numThreads = getSelectedMapThreads();
+            triggerTask(`start/map_${numThreads}way`);
+        });
+    }
 
     document.getElementById('btn-start-email-dual').addEventListener('click', () => {
         const curFile = getCurrentOutputFile();

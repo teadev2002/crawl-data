@@ -326,7 +326,7 @@ def clean_text(text):
     return cleaned.strip()
 
 def create_browser_session(p):
-    """Khởi tạo phiên trình duyệt mới cho Playwright (hỗ trợ cả Chrome thật và Chromium mặc định)"""
+    """Khởi tạo phiên trình duyệt mới cho Playwright (hỗ trợ cả Chrome thật và Chromium mặc định) với tối ưu hóa chặn tài nguyên nặng"""
     if USE_MY_CHROME_PROFILE:
         print(f"Đang mở Google Chrome thật tại đường dẫn: {CHROME_PROFILE_PATH}...")
         context = p.chromium.launch_persistent_context(
@@ -340,6 +340,19 @@ def create_browser_session(p):
         browser = p.chromium.launch(headless=False)
         context = browser.new_context()
         page = context.new_page()
+
+    # Tối ưu siêu tốc (Asset Blocking): Chặn tải hình ảnh, font chữ, media không cần thiết cho bóc tách văn bản
+    def block_unnecessary_assets(route, request):
+        if request.resource_type in ["image", "media", "font"]:
+            route.abort()
+        else:
+            route.continue_()
+
+    try:
+        context.route("**/*", block_unnecessary_assets)
+    except Exception:
+        pass
+
     return browser, context, page
 
 def scrape_google_maps_multi(queries, max_results=400, output_file="hotels.json", mode="top"):
@@ -356,13 +369,23 @@ def scrape_google_maps_multi(queries, max_results=400, output_file="hotels.json"
             print(f"[!] Không thể khởi tạo file kết quả: {e}")
 
     total_queries_count = len(queries)
-    midpoint = total_queries_count // 2 if total_queries_count > 1 else 1
 
-    if mode == "bottom":
+    match_way = re.match(r'^(?:(\d+)way_)?p(\d+)$', mode.lower())
+    if match_way:
+        total_w = int(match_way.group(1)) if match_way.group(1) else 5
+        w_idx = int(match_way.group(2)) - 1
+        start_idx = (w_idx * total_queries_count) // total_w
+        end_idx = ((w_idx + 1) * total_queries_count) // total_w
+        target_queries = queries[start_idx:end_idx]
+        print(f"[*] Chế độ quét: LUỒNG {total_w}-WAY [{mode.upper()}]. Quét {len(target_queries)}/{total_queries_count} từ khóa thuộc phân đoạn {w_idx + 1}/{total_w} (Từ khóa {start_idx + 1} -> {end_idx})...")
+        queries = target_queries
+    elif mode == "bottom":
+        midpoint = total_queries_count // 2 if total_queries_count > 1 else 1
         target_queries = list(reversed(queries[midpoint:])) if total_queries_count > 1 else queries
         print(f"[*] Chế độ quét: LUỒNG BOTTOM (QUÉT TỪ DƯỚI LÊN). Quét {len(target_queries)} từ khóa thuộc nửa sau (Từ khóa {midpoint + 1} -> {total_queries_count})...")
         queries = target_queries
     else:
+        midpoint = total_queries_count // 2 if total_queries_count > 1 else 1
         target_queries = queries[:midpoint] if total_queries_count > 1 else queries
         print(f"[*] Chế độ quét: LUỒNG TOP (QUÉT TỪ TRÊN XUỐNG). Quét {len(target_queries)} từ khóa thuộc nửa đầu (Từ khóa 1 -> {len(target_queries)})...")
         queries = target_queries
@@ -437,18 +460,6 @@ def scrape_google_maps_multi(queries, max_results=400, output_file="hotels.json"
                 print(f"\n[+] [{mode.upper()}] Tổng số bản ghi trong file đã đạt chỉ tiêu tối đa ({file_total}/{max_results} bản ghi)! Hoàn thành!")
                 break
 
-            # Tự động dọn dẹp RAM trình duyệt định kỳ sau mỗi 50 từ khóa tìm kiếm
-            if q_index > 0 and q_index % 50 == 0:
-                print(f"\n[*] [RAM CLEANUP] Đã quét {q_index} từ khóa. Tiến hành tự động đóng nhẹ trình duyệt để xả RAM...")
-                try:
-                    if context: context.close()
-                    if browser: browser.close()
-                except Exception:
-                    pass
-                time.sleep(2)
-                browser, context, page = create_browser_session(p)
-                print("[*] [RAM CLEANUP] Đã làm mới trình duyệt sạch sẽ và giải phóng RAM thành công!")
-                
             print(f"\n--- [{mode.upper()}] Đang quét khu vực ({q_index + 1}/{len(queries)}): {query} (Đã lưu: {thread_saved_count}/{thread_target}) ---")
             try:
                 page.goto(f"https://www.google.com/maps/search/{query.replace(' ', '+')}", wait_until='domcontentloaded', timeout=60000)
@@ -464,11 +475,11 @@ def scrape_google_maps_multi(queries, max_results=400, output_file="hotels.json"
                     time.sleep(2)
                     browser, context, page = create_browser_session(p)
                     continue
-            time.sleep(3.5)
+            time.sleep(1.2)
             
             # Chờ feed hiển thị
             try:
-                page.wait_for_selector('div[role="feed"]', timeout=8000)
+                page.wait_for_selector('div[role="feed"]', timeout=4000)
             except Exception:
                 pass
                 
@@ -515,7 +526,7 @@ def scrape_google_maps_multi(queries, max_results=400, output_file="hotels.json"
                     page.keyboard.press('End')
                     
                 page.evaluate("window.scrollBy(0, 3000)")
-                time.sleep(2.5)
+                time.sleep(0.8)
 
             print(f"[*] [{mode.upper()}] Từ khóa '{query}': Thu thập được {len(current_query_urls)} liên kết ứng viên mới. Tiến hành bóc tách chi tiết...")
 
@@ -546,10 +557,11 @@ def scrape_google_maps_multi(queries, max_results=400, output_file="hotels.json"
 
                 print(f"[{mode.upper()}] Đang crawl [{i+1}/{len(current_query_urls)}]: {url}")
                 try:
-                    page.goto(url, wait_until='domcontentloaded', timeout=60000)
+                    page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                    page.wait_for_selector('h1', timeout=1500)
                 except Exception as goto_err:
-                    print(f"   [!] Cảnh báo: Tải trang chi tiết chậm (Timeout): {goto_err}")
-                time.sleep(2.0)
+                    pass
+                time.sleep(0.3)
 
                 title_raw = page.locator('h1').first.inner_text() if page.locator('h1').count() > 0 else "N/A"
                 title = clean_text(title_raw)
@@ -654,28 +666,23 @@ def scrape_google_maps_multi(queries, max_results=400, output_file="hotels.json"
         except Exception:
             pass
 
-    print(f"\n[+] [{mode.upper()}] CÀO GOOGLE MAPS HOÀN TẤT! Đã đóng góp {thread_saved_count}/{thread_target} bản ghi hợp lệ chuẩn 100%.")
+    print(f"\n[+] [{mode.upper()}] CÀO GOOGLE MAPS HOÀN TẤT! Luồng này đã đóng góp {thread_saved_count} bản ghi mới.")
 
-    # 2. Hợp nhất kết quả cũ và mới
-    all_results = existing_records + results
-    
-    # Cập nhật lại số thứ tự (STT) và dọn dẹp sạch sẽ toàn bộ bản ghi (cả cũ lẫn mới) trước khi lưu
-    for idx, item in enumerate(all_results):
-        item["stt"] = idx + 1
-        if "title" in item:
-            item["title"] = clean_text(item["title"])
-        if "address" in item:
-            item["address"] = clean_text(item["address"])
-        if "phone" in item and item["phone"]:
-            item["phone"] = re.sub(r'[^0-9+]', '', item["phone"])
+    # Đọc lại toàn bộ bản ghi thực tế tích lũy hiện đang có trong file đĩa để thông báo kết quả chuẩn xác nhất (Read-Only)
+    final_file_records = []
+    if os.path.exists(output_file):
+        try:
+            with open(output_file, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+                if content:
+                    raw_recs = json.loads(content)
+                    if isinstance(raw_recs, list):
+                        final_file_records = raw_recs
+        except Exception:
+            pass
 
-    # Lưu file JSON duy nhất MỘT LẦN sau khi hoàn tất cào để tối ưu hiệu năng
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(all_results, f, ensure_ascii=False, indent=2)
-
-    print(f"\nHoàn thành! Đã quét thêm {len(results)} kết quả mới.")
-    print(f"Tổng số kết quả hiện tại trong file '{output_file}': {len(all_results)} khách sạn.")
-    return all_results
+    print(f"Tổng số kết quả hiện tại trong file '{output_file}': {len(final_file_records)} địa điểm.")
+    return final_file_records
 
 
 # ==================== KHU VỰC KHỞI CHẠY SCRIPT ====================
