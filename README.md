@@ -1,35 +1,253 @@
-# HƯỚNG DẪN SỬ DỤNG NHANH CÔNG CỤ CÀO GOOGLE MAPS & EMAIL
+# 🚀 HỆ THỐNG CÀO & PHÂN TÍCH DỮ LIỆU ĐA NỀN TẢNG (MAPS, EMAIL, CATEGORY, STAR HARVESTER)
+
+Hệ thống tự động hóa cào, thu thập, bóc tách và phục hồi dữ liệu thông tin doanh nghiệp, khách sạn và dịch vụ lưu trú quy mô lớn với giao diện Web Dashboard quản lý thời gian thực (Real-Time Live Dashboard).
 
 ---
 
-## 🛠️ Bước 1: Thiết lập (Chỉ làm 1 lần duy nhất)
-Click đúp chuột vào file **`setup.bat`** để chương trình tự động cài đặt môi trường và trình duyệt.
+## 📌 MỤC LỤC
+1. [Tổng Quan Kiến Trúc & Công Nghệ](#-tổng-quan-kiến-trúc--công-nghệ)
+2. [Chi Tiết Các Chức Năng Chính](#-chi-tiết-các-chức-năng-chính)
+   - [Tool 1: Cào Dữ Liệu Google Maps Đa Luồng](#tool-1-cào-dữ-liệu-google-maps-đa-luồng-map_scraperpy)
+   - [Tool 2: Quét Tìm Email Doanh Nghiệp](#tool-2-quét-tìm-email-doanh-nghiệp-email_harvesterpy)
+   - [Tool 3: Dò Tìm Phân Loại CategoryName](#tool-3-dò-tìm-phân-loại-categoryname-category_repairerpy)
+   - [Tool 4: Sửa & Khôi Phục Bản Ghi Lỗi N/A](#tool-4-sửa--khôi-phục-bản-ghi-lỗi-na-info_repairerpy)
+   - [Tool 5: Tìm Số Sao Khách Sạn Waterfall 3 Nền Tảng](#tool-5-tìm-số-sao-khách-sạn-waterfall-3-nền-tảng-star_harvesterpy)
+3. [Luồng Sử Dụng Cho Từng Chức Năng (User Flows)](#-luồng-sử-dụng-cho-từng-chức-năng-user-flows)
+4. [Giao Diện Quản Lý Web Dashboard](#-giao-diện-quản-lý-web-dashboard)
+5. [Hướng Dẫn Cài Đặt & Vận Hành](#-hướng-dẫn-cài-đặt--vận-hành)
+6. [Cấu Trúc Dữ Liệu Tiêu Chuẩn (JSON Output)](#-cấu-trúc-dữ-liệu-tiêu-chuẩn-json-output)
 
 ---
 
-## ⚙️ Bước 2: Chỉnh sửa Cấu hình (Mở file `config.json`)
-Mở file **`config.json`** bằng Notepad để chỉnh sửa thông tin theo ý bạn:
 
-* **`search_queries`**: Nhập danh sách từ khóa khu vực cần cào (ví dụ: `["khách sạn Tây Ninh", "khách sạn Hòa Thành"]`).
-* **`output_file`**: Tên file JSON lưu kết quả đầu ra (ví dụ: `hotels-TayNinh.json`). Cả 2 tool sẽ tự động đọc/ghi chung vào file này.
-* **`max_results`**: Số lượng kết quả tối đa muốn cào.
-* **`USE_MY_CHROME_PROFILE`**: Đổi thành `true` nếu muốn dùng Chrome cá nhân của bạn (Lưu ý: Phải tắt hẳn trình duyệt Chrome trước khi chạy).
+## 💡 CHI TIẾT CÁC CHỨC NĂNG CHÍNH
+
+### Tool 1: Cào Dữ Liệu Google Maps Đa Luồng (`map_scraper.py`)
+* **Chạy Đa Luồng Song Song Flex:** Cho phép người dùng tùy chọn radio chạy **3 Luồng**, **4 Luồng** hoặc **5 Luồng** song song (`3way`, `4way`, `5way`).
+* **Chia Phân Đoạn Toán Học $X$-Way:** Tự động phân chia danh sách hàng ngàn từ khóa dán trong cấu hình theo công thức floor-division, đảm bảo **0% trùng lặp** và **0% bỏ sót**.
+* **Bộ Lọc Tọa Độ Tỉnh/Thành (`target_province`):** Tích hợp tọa độ Bounding Box (`PROVINCE_BOUNDS_MAP`) của 34 tỉnh/thành phố Việt Nam, tự động loại bỏ các địa điểm nằm ngoài vùng địa lý mong muốn.
+* **Tối Ưu Tốc Độ Siêu Tốc (Asset Blocking):** Chặn tải hình ảnh, font chữ, media nặng qua Playwright Route Interception, giảm 70% băng thông và tăng tốc cào gấp 3 lần.
+* **Cơ Chế Chỉ Tiêu Tối Đa `max_results`:** Tất cả các luồng tự động kiểm tra tổng số bản ghi đĩa và dừng ngay lập tức khi đạt đủ chỉ tiêu.
 
 ---
 
-## 🚀 Bước 3: Khởi chạy
+### Tool 2: Quét Tìm Email Doanh Nghiệp (`email_harvester.py`)
+* **Chạy 2 Luồng Song Song (TOP & BOTTOM):** Phân chia danh sách các bản ghi chưa có email thành 2 nửa và quét đồng thời.
+* **Đa Nguồn Quét Email:** Quét từ kết quả Google Search, trang chủ Website của cơ sở, trang Contact/Giới thiệu, và trang Facebook About.
+* **Bóc Tách Regex Tiêu Chuẩn:** Nhận diện email qua thẻ `mailto:` và chuỗi regex tiêu chuẩn RFC 5322, tự động loại bỏ email rác/placeholder.
 
-### 1. Cào địa điểm mới (Chạy file `run.bat`)
-Click đúp file **`run.bat`** để bắt đầu cào thông tin địa điểm (Tên, SĐT, Địa chỉ, Website, Điểm số) theo từ khóa trong `config.json`.
+---
 
-### 2. Cào bổ sung Email (Có 2 chế độ chọn)
+### Tool 3: Dò Tìm Phân Loại CategoryName (`category_repairer.py`)
+* **Phục Hồi CategoryName Rỗng/N/A:** Dò tìm ngành nghề chính xác của cơ sở (ví dụ: `Hotel`, `Resort`, `Restaurant`, `Repair Shop`...).
+* **Phân Tích Đa Nguồn:** Tra cứu tên cơ sở, trang web, và danh mục dịch vụ trên Google Maps/Search để cập nhật trường `"categoryName"`.
 
-* **Chế độ 1 luồng truyền thống (Chạy file `run_email_harvester.bat`):**
-  Click đúp file **`run_email_harvester.bat`** để chạy tuần tự từ trên xuống dưới.
-  
-* **Chế độ 2 luồng song song - Tăng tốc gấp đôi (Khuyên dùng):**
-  Click đúp đồng thời **cả 2 file** sau đây:
-  1. **`run_email_harvester_top.bat`** (Quét từ đầu danh sách xuống)
-  2. **`run_email_harvester_bottom.bat`** (Quét từ cuối danh sách lên)
-  
-  *(Hai màn hình đen CMD sẽ hiện ra chạy song song. Hai luồng sẽ tự động điều phối để không cào trùng nhau, khi gặp nhau ở giữa danh sách sẽ tự dừng lại và tự động gộp kết quả gỡ bỏ file tạm).*
+---
+
+### Tool 4: Sửa & Khôi Phục Bản Ghi Lỗi N/A (`info_repairer.py`)
+* **Rà Soát Dữ Liệu Bị Thiếu:** Tự động tìm các bản ghi dính lỗi `"N/A"` hoặc rỗng ở trường Số Điện Thoại (`phone`) hoặc Địa Chỉ (`address`).
+* **Phục Hồi Chuẩn Xác:** Mở lại trang tìm kiếm chi tiết để bóc tách bổ sung SĐT và địa chỉ chuẩn, giúp bộ dữ liệu đạt độ đầy đủ 100%.
+
+---
+
+### Tool 5: Tìm Số Sao Khách Sạn Waterfall 3 Nền Tảng (`star_harvester.py`)
+* **Quy Trình Waterfall 3 Lớp:**
+  1. Thử cào trên **Booking.com**
+  2. Nếu không tìm thấy $\rightarrow$ Thử sang **Agoda.com**
+  3. Nếu vẫn không thấy $\rightarrow$ Thử tiếp **Traveloka.com**
+  *(Lấy được số sao ở bất kỳ nền tảng nào sẽ chốt kết quả ngay và chuyển sang khách sạn tiếp theo).*
+* **Tùy Chọn Đa Luồng (2, 3, 4 Luồng):** Tự động phân chia danh sách chưa có sao theo radio chọn số luồng trên UI (`star_2way`, `star_3way`, `star_4way`).
+* **Lọc Link Cụ Thể "Link 1 vs Link 2" (`is_specific_hotel_url`):** Tự động phát hiện và bỏ qua các đường link dẫn về trang danh sách thành phố chung (`booking.com/city/...`), tự động thử Link 2 để chọn đúng trang chi tiết khách sạn.
+* **Đối Chiếu Tỉnh/Thành Chuẩn Hóa Không Dấu (`strip_accents` & `is_province_matched`):** Bóc tách địa chỉ hiển thị trên trang khách sạn, bỏ dấu tiếng Việt (Unicode NFD) để đối chiếu Tỉnh/Thành. **Nếu địa chỉ trên trang sai Tỉnh/Thành $\rightarrow$ hủy kết quả ngay lập tức** để tránh lấy nhầm số sao của khách sạn cùng tên ở tỉnh khác.
+* **Nối Chuỗi Trường Nguồn `source` Bằng Dấu ` | `:**
+  - `categoryName`: `"2-star hotel"`
+  - `stars`: `"2-star hotel"`
+  - `source`: `"Facebook About: https://... | Agoda: https://www.agoda.com/vi-vn/..."` *(Cộng dồn các nguồn linh hoạt).*
+* **Bộ Tìm Kiếm Đa Engine Chống CAPTCHA:** Google Search $\rightarrow$ Bing Search $\rightarrow$ DuckDuckGo.
+* **Tự Động Xóa Cache Sau Khi Hoàn Thành:** Tự động giải phóng hoàn toàn thư mục `browser_profile_pX` sau khi dừng hoặc hoàn thành nhiệm vụ.
+
+---
+
+## 🔄 LUỒNG SỬ DỤNG CHO TỪNG CHỨC NĂNG (USER FLOWS)
+
+### 🔴 User Flow 1: Cấu Hình Hệ Thống & Chuẩn Bị Tìm Kiếm (Tab Config)
+```
+[Mở Dashboard] ➔ [Chọn Tab 'Cấu hình'] ➔ [Dán Danh Sách Từ Khóa (Search Queries)]
+                                                    │
+[Lưu Cấu Hình] ◄─ [Đặt Tên File Output (hotels.json)] ◄─ [Chọn Tỉnh/Thành Mục Tiêu]
+```
+1. Người dùng mở trang Web Dashboard tại `http://localhost:8000`.
+2. Chuyển sang tab **"Cấu hình Hệ thống"** (`Tab Config`).
+3. Dán danh sách từ khóa tìm kiếm (mỗi từ khóa 1 dòng, ví dụ: danh sách tên con đường trong các phường/xã).
+4. Chọn **Tỉnh/Thành phố mục tiêu** từ menu 34 Tỉnh/Thành để kích hoạt bộ lọc địa lý chuẩn xác.
+5. Đặt tên file xuất dữ liệu (`hotels.json`).
+6. Nhấn nút **"Lưu Cấu hình"**.
+
+---
+
+### 🟢 User Flow 2: Cào Dữ Liệu Google Maps Đa Luồng (`map_scraper.py`)
+```
+[Chọn Radio: 3 / 4 / 5 Luồng] ➔ [Nhập max_results] ➔ [Bấm '🚀 Chạy X Luồng (Song song)']
+                                                                  │
+[Tự Động Dừng Khi Xong/Đủ Max] ◄─ [Cập Nhật Progress & Logs] ◄─ [5 Trình Duyệt Bật Giãn Cách 0.8s]
+```
+1. Tại Tab **Dashboard**, di chuyển đến thẻ **Tool 1: Cào Dữ Liệu Google Maps**.
+2. Chọn số luồng cào song song bằng nút Radio: **3 Luồng**, **4 Luồng** hoặc **5 Luồng**.
+3. Nhập số kết quả tối đa cần cào vào ô `max_results` (mặc định 100/200/1000).
+4. Nhấn nút **`🚀 Chạy X Luồng (Song song)`**.
+5. Quan sát các cửa sổ trình duyệt khởi chạy lần lượt (giãn cách 0.8s), log Real-Time chạy liên tục trên Live Console và thanh tiến trình nhảy con số thực tế.
+6. Khi hoàn thành hoặc đủ chỉ tiêu `max_results`, hệ thống thông báo hoàn thành và tự động đóng trình duyệt.
+
+---
+
+### 🟡 User Flow 3: Quét Tìm Email Doanh Nghiệp (`email_harvester.py`)
+```
+[File Output Đã Có Data] ➔ [Thẻ Tool 2: Quét Email] ➔ [Bấm '📧 Quét Email (2 Luồng)']
+                                                                  │
+[Cập Nhật Email & Icon Thẻ Email] ◄─ [Quét Google/Web/Facebook] ◄─ [2 Luồng TOP & BOTTOM Khởi Chạy]
+```
+1. Đảm bảo file JSON làm việc (`hotels.json`) đã có dữ liệu địa điểm từ bước cào Google Maps.
+2. Tại thẻ **Tool 2: Quét Email Doanh Nghiệp**, bấm nút **`📧 Quét Email (2 Luồng)`**.
+3. Hệ thống kích hoạt 2 luồng song song (TOP & BOTTOM) tự động quét các bản ghi chưa có email.
+4. Trình duyệt mở Google Search, trang chủ Website của cơ sở, trang Giới thiệu/Contact và trang Facebook About để bóc tách email.
+5. Dữ liệu Email bổ sung Real-Time vào file JSON, thẻ **"Đã có Email"** trên ô thống kê tăng dần.
+
+---
+
+### 🔵 User Flow 4: Dò Tìm Phân Loại CategoryName (`category_repairer.py`)
+```
+[Thẻ Tool 3: Dò Category] ➔ [Bấm '🏷️ Dò Category (2 Luồng)'] ➔ [2 Luồng Song Song Khởi Chạy]
+                                                                        │
+[Cập Nhật CategoryName Chuẩn] ◄─ [Lưu Atomic Write Real-Time] ◄─ [Dò Tìm Tên/Web/Search]
+```
+1. Tại thẻ **Tool 3: Dò CategoryName**, bấm nút **`🏷️ Dò Category (2 Luồng)`**.
+2. Hệ thống quét rà soát các bản ghi bị rỗng hoặc `"N/A"` ở trường `categoryName`.
+3. Dò tìm ngành nghề thực tế (như `Hotel`, `Resort`, `Restaurant`...) và lưu đè vào file JSON.
+
+---
+
+### 🟣 User Flow 5: Sửa & Khôi Phục Bản Ghi Lỗi N/A (`info_repairer.py`)
+```
+[Thẻ Tool 4: Sửa Lỗi N/A] ➔ [Bấm '🔧 Sửa dữ liệu N/A'] ➔ [Rà Soát Bản Ghi Khuyết SĐT/Địa Chỉ]
+                                                                   │
+[Bản Ghi Đầy Đủ 100%] ◄─ [Khôi Phục SĐT & Địa Chỉ Chuẩn] ◄─ [Truy Vấn Lại Trang Chi Tiết]
+```
+1. Tại thẻ **Tool 4: Sửa bản ghi lỗi N/A**, bấm nút **`🔧 Sửa dữ liệu N/A`**.
+2. Hệ thống tìm các bản ghi thiếu SĐT hoặc Địa chỉ.
+3. Mở lại trang truy vấn chi tiết để điền bổ sung thông tin chính xác.
+
+---
+
+### 🧡 User Flow 6: Tìm Số Sao Khách Sạn Waterfall 3 Nền Tảng (`star_harvester.py`)
+```
+[Chọn Radio: 2 / 3 / 4 Luồng] ➔ [Bấm '🚀 Chạy X Luồng (Booking & Agoda)']
+                                                 │
+[Tự Động Xóa Profile Cache Tạm] ◄─ [Thử Waterfall: Booking ➔ Agoda ➔ Traveloka]
+              │                                  │
+              └─── [Ajax Polling 3s Nhảy Thống Kê 1-5★] ◄─ [Lưu Nguồn `source` Nối ` | `]
+```
+1. Tại thẻ **Tool 5: Tìm số sao Booking & Agoda**, tích chọn số luồng: **2 Luồng**, **3 Luồng** hoặc **4 Luồng**.
+2. Nhấn nút **`🚀 Chạy X Luồng (Booking & Agoda)`**.
+3. Các luồng Playwright bật lên song song với bộ Profile cách ly (`browser_profile_pX`).
+4. Hệ thống thực thi thử cào theo mô hình Waterfall 3 lớp: **Booking.com $\rightarrow$ Agoda.com $\rightarrow$ Traveloka.com**.
+5. Bóc tách số sao, lọc bỏ trang danh sách thành phố chung, đối chiếu Tỉnh/Thành không dấu chuẩn xác.
+6. Nối chuỗi nguồn vào trường `source` (`Facebook About: ... | Agoda: https://...`).
+7. Thẻ thống kê thứ 5 **"Khách sạn Có Sao"** và 5 nhãn hạng sao (`1★` đến `5★`) ở góc trên màn hình tự động nhảy số Real-Time qua Ajax Polling (3 giây/lần).
+8. Ngay khi cào xong, hệ thống tự động dọn dẹp sạch sẽ 100% các thư mục cache đệm tạm (`browser_profile*`).
+
+---
+
+### 📊 User Flow 7: Khám Phá & Xuất Dữ Liệu (Tab Data Explorer)
+```
+[Chọn Tab 'Khám Phá Dữ Liệu'] ➔ [Tìm Kiếm / Lọc Theo Category] ➔ [Duyệt Bảng Phân Trang]
+                                                                        │
+[Tải Xuất File Data] ◄─ [Chọn Nút: Xuất CSV / Excel / Tải JSON] ◄───────┘
+```
+1. Người dùng chọn tab **"Khám phá & Xuất Dữ liệu"** (`Tab Data`).
+2. Gõ từ khóa tìm kiếm trên thanh tìm kiếm hoặc lọc theo ngành nghề Category.
+3. Duyệt danh sách trực quan qua bảng phân trang 50 bản ghi/trang.
+4. Bấm nút **Xuất CSV**, **Xuất Excel**, hoặc **Tải file JSON** để tải tệp kết quả về máy tính.
+
+---
+
+## 📊 GIAO DIỆN QUẢN LÝ WEB DASHBOARD
+
+1. **Hàng 5 Thẻ Thống Kê Tổng Quan (Top Dashboard Grid):**
+   - **Tổng số Địa điểm:** Số lượng bản ghi hiện có trong tệp JSON.
+   - **Đã có Email:** Số lượng cơ sở đã thu thập được Email.
+   - **Đã có Category:** Số lượng bản ghi có phân loại ngành nghề.
+   - **Số Điện Thoại:** Số lượng bản ghi có SĐT liên hệ.
+   - **Khách sạn Có Sao:** Tổng số địa điểm có số sao kèm 5 nhãn pill phân loại chi tiết: `1★: X`, `2★: Y`, `3★: Z`, `4★: W`, `5★: V`.
+2. **Thanh Tiến Trình Real-Time & Cập Nhật Tự Động Qua Ajax:**
+   - **Tỉ lệ quét thực tế:** Hiển thị `SỐ BẢN GHI ĐÃ QUÉT / TỔNG BẢN GHI FILE OUTPUT` (Ví dụ: `85 / 200 bản ghi đã quét (42.5%)`).
+   - **Ajax Polling 3 giây/lần:** Các con số thống kê và thanh tiến trình tự động nhảy Real-Time mà người dùng **không cần bấm F5 làm mới trang**.
+3. **Tab Cấu Hình Hệ Thống (Config Manager):**
+   - Quản lý danh sách từ khóa tìm kiếm dán hàng ngàn dòng.
+   - Chọn Tỉnh/Thành phố mục tiêu (34 Tỉnh/Thành).
+   - Đặt tên file xuất dữ liệu (`hotels.json`).
+4. **Tab Khám Phá & Xuất Dữ Liệu (Data Explorer):**
+   - Bảng tra cứu dữ liệu phân trang, hỗ trợ tìm kiếm từ khóa và lọc theo ngành nghề.
+   - Xuất dữ liệu sang file CSV / Excel / JSON.
+
+---
+
+## ⚡ HƯỚNG DẪN CÀI ĐẶT & VẬN HÀNH
+
+### 1. Yêu cầu môi trường
+- Python 3.10 trở lên.
+- Trình duyệt Google Chrome hoặc Microsoft Edge.
+
+### 2. Cài đặt các thư viện phụ thuộc
+Mở CMD hoặc PowerShell tại thư mục dự án và chạy:
+
+```powershell
+# Tạo và kích hoạt môi trường ảo Python
+python -m venv .venv
+.\.venv\Scripts\activate
+
+# Cài đặt các thư viện Python cần thiết
+pip install fastapi uvicorn playwright selenium
+
+# Tải trình duyệt Chromium cho Playwright
+playwright install chromium
+```
+
+### 3. Khởi chạy hệ thống
+Chạy lệnh khởi động Uvicorn Server:
+
+```powershell
+python server.py
+```
+
+Mở trình duyệt web và truy cập địa chỉ:
+👉 **`http://localhost:8000`**
+
+---
+
+## 📄 CẤU TRÚC DỮ LIỆU TIÊU CHUẨN (JSON OUTPUT)
+
+Mỗi bản ghi được lưu trữ theo cấu trúc chuẩn 12+ trường dữ liệu:
+
+```json
+[
+  {
+    "stt": 1,
+    "title": "CT Morning Hotel",
+    "email": "info@ctmorning.com",
+    "phone": "+84971714174",
+    "address": "81 Lý Hồng Thanh, Cái Khế, Cần Thơ, Vietnam",
+    "url": "https://www.google.com/maps/place/CT+Morning+Hotel/...",
+    "totalScore": "4.7",
+    "website": "https://www.ctmorning.com/",
+    "facebook": "https://www.facebook.com/ctmorninghotel/",
+    "categoryName": "2-star hotel",
+    "source": "Facebook About: https://www.facebook.com/ctmorninghotel/about | Agoda: https://www.agoda.com/vi-vn/ct-morning-hotel/hotel/can-tho-vn.html",
+    "isFlag": true,
+    "stars": "2-star hotel"
+  }
+]
+```
+
+---
+
+*Hệ thống được phát triển và tối ưu bởi **Antigravity AI Team**.*
