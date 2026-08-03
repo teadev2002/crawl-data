@@ -11,9 +11,11 @@ __pycache__/
 *.tmp
 *.tmp_*
 
-# Chrome User Data Profiles
+# Chrome User Data Profiles & Browser Session Cache
 ChromeUserData/
 User Data/
+browser_profile/
+browser_profile*/
 
 # User Data Files & Results (Bảo vệ dữ liệu cào riêng tư của người dùng)
 *.json

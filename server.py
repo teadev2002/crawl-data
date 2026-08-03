@@ -256,28 +256,31 @@ def run_command_stream(cmd, task_name, loop):
 @app.post("/api/tasks/start/map_3way")
 async def start_map_3way():
     loop = asyncio.get_event_loop()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=3way_p1"], "MAP_P1", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=3way_p2"], "MAP_P2", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=3way_p3"], "MAP_P3", loop), daemon=True).start()
+    def launch_staggered():
+        for m, tag in [("3way_p1", "MAP_P1"), ("3way_p2", "MAP_P2"), ("3way_p3", "MAP_P3")]:
+            threading.Thread(target=run_command_stream, args=(["map_scraper.py", f"--mode={m}"], tag, loop), daemon=True).start()
+            time.sleep(0.8)
+    threading.Thread(target=launch_staggered, daemon=True).start()
     return {"status": "success", "message": "Đã kích hoạt Cào Google Maps song song 3 luồng (P1 -> P3)!"}
 
 @app.post("/api/tasks/start/map_4way")
 async def start_map_4way():
     loop = asyncio.get_event_loop()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=4way_p1"], "MAP_P1", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=4way_p2"], "MAP_P2", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=4way_p3"], "MAP_P3", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=4way_p4"], "MAP_P4", loop), daemon=True).start()
+    def launch_staggered():
+        for m, tag in [("4way_p1", "MAP_P1"), ("4way_p2", "MAP_P2"), ("4way_p3", "MAP_P3"), ("4way_p4", "MAP_P4")]:
+            threading.Thread(target=run_command_stream, args=(["map_scraper.py", f"--mode={m}"], tag, loop), daemon=True).start()
+            time.sleep(0.8)
+    threading.Thread(target=launch_staggered, daemon=True).start()
     return {"status": "success", "message": "Đã kích hoạt Cào Google Maps song song 4 luồng (P1 -> P4)!"}
 
 @app.post("/api/tasks/start/map_5way")
 async def start_map_5way():
     loop = asyncio.get_event_loop()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=5way_p1"], "MAP_P1", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=5way_p2"], "MAP_P2", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=5way_p3"], "MAP_P3", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=5way_p4"], "MAP_P4", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["map_scraper.py", "--mode=5way_p5"], "MAP_P5", loop), daemon=True).start()
+    def launch_staggered():
+        for m, tag in [("5way_p1", "MAP_P1"), ("5way_p2", "MAP_P2"), ("5way_p3", "MAP_P3"), ("5way_p4", "MAP_P4"), ("5way_p5", "MAP_P5")]:
+            threading.Thread(target=run_command_stream, args=(["map_scraper.py", f"--mode={m}"], tag, loop), daemon=True).start()
+            time.sleep(0.8)
+    threading.Thread(target=launch_staggered, daemon=True).start()
     return {"status": "success", "message": "Đã kích hoạt Cào Google Maps song song 5 luồng (P1 -> P5)!"}
 
 @app.post("/api/tasks/start/map_dual")
@@ -303,6 +306,40 @@ async def start_info_repair():
     loop = asyncio.get_event_loop()
     threading.Thread(target=run_command_stream, args=(["info_repairer.py"], "INFO_REPAIR", loop), daemon=True).start()
     return {"status": "success", "message": "Đã kích hoạt Sửa dữ liệu N/A!"}
+
+@app.post("/api/tasks/start/star_2way")
+async def start_star_2way():
+    loop = asyncio.get_event_loop()
+    def launch_staggered():
+        for m, tag in [("top", "STAR_P1"), ("bottom", "STAR_P2")]:
+            threading.Thread(target=run_command_stream, args=(["star_harvester.py", f"--mode={m}"], tag, loop), daemon=True).start()
+            time.sleep(0.8)
+    threading.Thread(target=launch_staggered, daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Tìm Số Sao song song 2 luồng!"}
+
+@app.post("/api/tasks/start/star_3way")
+async def start_star_3way():
+    loop = asyncio.get_event_loop()
+    def launch_staggered():
+        for m, tag in [("3way_p1", "STAR_P1"), ("3way_p2", "STAR_P2"), ("3way_p3", "STAR_P3")]:
+            threading.Thread(target=run_command_stream, args=(["star_harvester.py", f"--mode={m}"], tag, loop), daemon=True).start()
+            time.sleep(0.8)
+    threading.Thread(target=launch_staggered, daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Tìm Số Sao song song 3 luồng!"}
+
+@app.post("/api/tasks/start/star_4way")
+async def start_star_4way():
+    loop = asyncio.get_event_loop()
+    def launch_staggered():
+        for m, tag in [("4way_p1", "STAR_P1"), ("4way_p2", "STAR_P2"), ("4way_p3", "STAR_P3"), ("4way_p4", "STAR_P4")]:
+            threading.Thread(target=run_command_stream, args=(["star_harvester.py", f"--mode={m}"], tag, loop), daemon=True).start()
+            time.sleep(0.8)
+    threading.Thread(target=launch_staggered, daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Tìm Số Sao song song 4 luồng!"}
+
+@app.post("/api/tasks/start/star_harvester")
+async def start_star_harvester():
+    return await start_star_3way()
 
 @app.post("/api/tasks/stop")
 async def stop_tasks():

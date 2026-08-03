@@ -337,7 +337,17 @@ def create_browser_session(p):
         page = context.pages[0] if context.pages else context.new_page()
         browser = None
     else:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(
+            headless=False,
+            args=[
+                "--disable-gpu",
+                "--disable-software-rasterizer",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--js-flags=--max-old-space-size=512"
+            ]
+        )
         context = browser.new_context()
         page = context.new_page()
 

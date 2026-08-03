@@ -82,6 +82,20 @@
                             <span class="stat-label">Số Điện Thoại</span>
                         </div>
                     </div>
+                    <div class="stat-card" style="min-width: 220px;">
+                        <div class="stat-icon yellow" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="fa-solid fa-star"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-star-records">0</span>
+                            <span class="stat-label">Khách sạn Có Sao</span>
+                            <div class="star-breakdown-pills" id="star-breakdown-pills" style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;">
+                                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">1★:0</span>
+                                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">2★:0</span>
+                                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">3★:0</span>
+                                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">4★:0</span>
+                                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">5★:0</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- CONTROL PANEL & ACTIONS -->
@@ -237,6 +251,55 @@
                             <div class="action-controls">
                                 <button class="btn btn-secondary" id="btn-start-info-repair">
                                     <i class="fa-solid fa-wrench"></i> Sửa dữ liệu N/A
+                                </button>
+                                <button class="btn btn-danger hidden" id="btn-stop-info">
+                                    <i class="fa-solid fa-square"></i> Dừng sửa N/A
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tool 5: Star Harvester (Booking & Agoda) -->
+                        <div class="action-card" id="card-star-harvester">
+                            <div class="action-header">
+                                <div class="action-title">
+                                    <i class="fa-solid fa-star" style="color: #f59e0b;"></i>
+                                    <div>
+                                        <strong>(Beta)</strong><h3>Tìm số sao Booking & Agoda </h3>
+                                        <p>Tra cứu số sao (1 -> 5 sao)</p>
+                                    </div>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-star-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                    <span class="file-name" id="file-output-star">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-star">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-star">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill" id="prog-bar-star" style="width: 0%; background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div>
+                                </div>
+                            </div>
+                            <div class="thread-select-box" style="margin-bottom: 12px; display: flex; align-items: center; gap: 12px; font-size: 0.88rem; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px;">
+                               
+                                <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    <input type="radio" name="star-thread-count" value="2"> 2 Luồng
+                                </label>
+                                <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    <input type="radio" name="star-thread-count" value="3" checked> 3 Luồng
+                                </label>
+                                <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    <input type="radio" name="star-thread-count" value="4"> 4 Luồng
+                                </label>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-warning" id="btn-start-star-action" style="color: #0f172a; font-weight: 600; background-color: #f59e0b; border-color: #d97706;">
+                                    <i class="fa-solid fa-star"></i> Chạy 3 Luồng (Booking & Agoda)
+                                </button>
+                                <button class="btn btn-danger hidden" id="btn-stop-star">
+                                    <i class="fa-solid fa-square"></i> Dừng tìm số sao
                                 </button>
                             </div>
                         </div>

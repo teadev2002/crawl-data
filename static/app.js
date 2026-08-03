@@ -68,8 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (barEl) barEl.style.width = `${percent}%`;
     }
 
-    let progressTotals = { map: 100, email: 100, cat: 100, info: 10 };
-    let progressCurrents = { map: 0, email: 0, cat: 0, info: 0 };
+    let progressTotals = { map: 100, email: 100, cat: 100, info: 10, star: 50 };
+    let progressCurrents = { map: 0, email: 0, cat: 0, info: 0, star: 0 };
     let mapActiveThreads = new Set();
 
     function parseLogProgress(msg) {
@@ -86,10 +86,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Tự động nhận diện Tên File Output thực tế từ WebSocket Log khi bất kỳ tool nào khởi chạy
-        const fileMatch = msg.match(/Đang đọc file dữ liệu:\s*([^\s\n]+)/i) || msg.match(/File lưu dữ liệu:\s*([^\s\n]+)/i);
+        const fileMatch = msg.match(/Đang đọc file dữ liệu:\s*([^\s\n]+)/i) || msg.match(/File lưu dữ liệu:\s*([^\s\n]+)/i) || msg.match(/File dữ liệu làm việc:\s*([^\s\n]+)/i);
         if (fileMatch) {
             const activeFile = fileMatch[1].trim();
-            if (msg.includes('CategoryName') || msg.includes('cat_repair') || msg.includes('Category')) {
+            if (msg.includes('STAR_') || msg.includes('STAR_HARVESTER') || msg.includes('star_harvester') || msg.includes('Số Sao')) {
+                setToolFile('star', activeFile);
+                updateToolStatus('star', 'running', 'Đang tìm sao');
+            } else if (msg.includes('CategoryName') || msg.includes('cat_repair') || msg.includes('Category')) {
                 setToolFile('cat', activeFile);
                 updateToolStatus('cat', 'running', 'Đang dò');
             } else if (msg.includes('Info_Repair') || msg.includes('info_repairer') || msg.includes("dính lỗi 'N/A'")) {
@@ -204,9 +207,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateToolStatus('info', 'running', 'Đang sửa');
                 }
             }
-            if (msg.includes('PHỤC HỒI DỮ LIỆU N/A HOÀN TẤT!') || msg.includes('sửa dữ liệu n\/a hoàn thành')) {
+            if (msg.includes('SỬA DỮ LIỆU BỊ N/A HOÀN TẤT!')) {
                 updateToolProgress('info', progressTotals.info, progressTotals.info);
                 updateToolStatus('info', 'completed', 'Hoàn thành');
+            }
+        }
+
+        // 5. STAR HARVESTER
+        const isStarLog = msg.includes('STAR_') || msg.includes('star_harvester') || msg.includes('Số Sao') || msg.includes('bản ghi có số sao');
+        if (isStarLog) {
+            const starProgMatch = msg.match(/Tiến trình:\s*(\d+)\s*\/\s*(\d+)\s*bản ghi/i);
+            if (starProgMatch) {
+                progressCurrents.star = parseInt(starProgMatch[1]);
+                progressTotals.star = parseInt(starProgMatch[2]) || progressTotals.star;
+                updateToolProgress('star', progressCurrents.star, progressTotals.star);
+                updateToolStatus('star', 'running', 'Đang tìm sao');
+            }
+            if (msg.includes('HOÀN THÀNH TÌM SỐ SAO!') || msg.includes('HOÀN THÀNH LUỒNG!')) {
+                updateToolStatus('star', 'completed', 'Hoàn thành');
             }
         }
     }
@@ -556,6 +574,37 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerTask('start/info_repair');
     });
 
+    // Cấu hình lựa chọn Radio số luồng cào Star Harvester (2, 3, 4 luồng)
+    const starThreadRadios = document.querySelectorAll('input[name="star-thread-count"]');
+    const btnStartStar = document.getElementById('btn-start-star-action') || document.getElementById('btn-start-star-harvester');
+    
+    function getSelectedStarThreads() {
+        let val = '3';
+        starThreadRadios.forEach(radio => {
+            if (radio.checked) val = radio.value;
+        });
+        return val;
+    }
+
+    starThreadRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            const num = getSelectedStarThreads();
+            if (btnStartStar) {
+                btnStartStar.innerHTML = `<i class="fa-solid fa-star"></i> Chạy ${num} Luồng (Booking & Agoda)`;
+            }
+        });
+    });
+
+    if (btnStartStar) {
+        btnStartStar.addEventListener('click', () => {
+            const curFile = getCurrentOutputFile();
+            setToolFile('star', curFile);
+            updateToolStatus('star', 'running', 'Đang tìm sao');
+            const numThreads = getSelectedStarThreads();
+            triggerTask(`start/star_${numThreads}way`);
+        });
+    }
+
     // DATA EXPLORER & EXPORT
     let allRecords = [];
     let currentPage = 1;
@@ -570,9 +619,13 @@ document.addEventListener('DOMContentLoaded', () => {
             populateCategoryFilter(allRecords);
             renderTable(allRecords);
         } catch (err) {
-            appendLog(`[!] Lỗi khi đọc dữ liệu bảng: ${err}`, 'error');
+            // Implemented silently for polling loop
         }
     }
+
+    // Khởi chạy Ajax Polling tự động làm mới ô thống kê 3 giây/lần theo thời gian thực
+    loadTableData();
+    setInterval(loadTableData, 3000);
 
     function updateStats(records) {
         document.getElementById('stat-total-records').innerText = records.length;
@@ -581,17 +634,53 @@ document.addEventListener('DOMContentLoaded', () => {
         let categoryCount = 0;
         let phoneCount = 0;
         let flaggedCount = 0;
+        let starCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        let totalStarCount = 0;
 
         records.forEach(r => {
             if (r.email && r.email.trim() !== '') emailCount++;
             if (r.categoryName && r.categoryName.trim() !== '' && r.categoryName !== 'N/A') categoryCount++;
             if (r.phone && r.phone.trim() !== '') phoneCount++;
             if (r.isFlag === true) flaggedCount++;
+
+            const cat = String(r.categoryName || r.category || "").toLowerCase();
+            const stars = String(r.stars || "").toLowerCase();
+            const text = `${cat} ${stars}`;
+            const match = text.match(/([1-5])\s*[-_]?\s*(?:sao|star)/i);
+            if (match) {
+                const sNum = parseInt(match[1]);
+                if (sNum >= 1 && sNum <= 5) {
+                    starCounts[sNum]++;
+                    totalStarCount++;
+                }
+            } else if (/^[1-5]$/.test(stars.trim())) {
+                const sNum = parseInt(stars.trim());
+                starCounts[sNum]++;
+                totalStarCount++;
+            } else if (/^[1-5]$/.test(cat.trim())) {
+                const sNum = parseInt(cat.trim());
+                starCounts[sNum]++;
+                totalStarCount++;
+            }
         });
 
         document.getElementById('stat-email-records').innerText = emailCount;
         document.getElementById('stat-category-records').innerText = categoryCount;
         document.getElementById('stat-phone-records').innerText = phoneCount;
+
+        const starStatEl = document.getElementById('stat-star-records');
+        if (starStatEl) starStatEl.innerText = totalStarCount;
+
+        const starPillsEl = document.getElementById('star-breakdown-pills');
+        if (starPillsEl) {
+            starPillsEl.innerHTML = `
+                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">1★:${starCounts[1]}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">2★:${starCounts[2]}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">3★:${starCounts[3]}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">4★:${starCounts[4]}</span>
+                <span class="badge" style="background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">5★:${starCounts[5]}</span>
+            `;
+        }
 
         // Đồng bộ tiến trình Cào Google Maps chính xác theo tổng số bản ghi thực tế trong file output
         if (records.length > 0) {
