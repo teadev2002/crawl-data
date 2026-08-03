@@ -671,6 +671,17 @@ def run_star_harvester_playwright(input_file, mode="single"):
                 context.close()
             except Exception:
                 pass
+
+            # Tự động dọn dẹp sạch sẽ bộ nhớ đệm cache và cookies tạm sau khi hoàn thành
+            try:
+                import shutil
+                time.sleep(1.0)
+                if os.path.exists(worker_profile_dir):
+                    shutil.rmtree(worker_profile_dir, ignore_errors=True)
+                    print(f"[{mode_tag}] Đã tự động dọn dẹp bộ nhớ đệm cache tạm ({os.path.basename(worker_profile_dir)}).")
+            except Exception:
+                pass
+
             print(f"[{mode_tag}] HOÀN THÀNH LUỒNG! Đã hoàn thành xử lý cho phân đoạn luồng {mode}.")
 
 if __name__ == "__main__":
