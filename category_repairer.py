@@ -192,11 +192,16 @@ def repair_categories(mode="top"):
         repair_indices = target_repair
 
     total_need_repair = len(repair_indices)
-    print(f"[*] Tổng số bản ghi trong file: {len(records)}")
+    total_file_records = len(records)
+    cat_count_initial = sum(1 for r in records if isinstance(r, dict) and str(r.get("categoryName", "")).strip() not in ["", "N/A"])
+    pct_initial = (cat_count_initial / total_file_records * 100) if total_file_records > 0 else 0
+
+    print(f"[CAT_{mode.upper()}] Tổng số bản ghi trong file: {total_file_records}")
     print(f"[*] [{mode.upper()}] Phát hiện {total_need_repair} bản ghi cần phục hồi 'categoryName'.")
+    print(f"[CAT_{mode.upper()}] Tiến trình: {cat_count_initial} / {total_file_records} bản ghi ({pct_initial:.1f}%)")
 
     if total_need_repair == 0:
-        print("[*] Tất cả bản ghi đều đã có 'categoryName'. Chương trình kết thúc.")
+        print("[CAT_REPAIR] HẠNG MỤC CÁC BẢN GHI ĐÃ ĐẦY ĐỦ! Tất cả bản ghi đều đã có 'categoryName'.")
         return
 
     with sync_playwright() as p:
@@ -216,7 +221,7 @@ def repair_categories(mode="top"):
 
         repaired_count = 0
 
-        for index_in_file, r in repair_indices:
+        for idx_attempt, (index_in_file, r) in enumerate(repair_indices):
             url = r.get("url", "")
             stt = r.get("stt", index_in_file + 1)
             title = r.get("title", "Khởi tạo")
@@ -288,6 +293,10 @@ def repair_categories(mode="top"):
 
             except Exception as crawl_err:
                 print(f"[!] [{mode.upper()}] Lỗi khi cào categoryName cho STT {stt}: {crawl_err}")
+
+            total_scanned = min(total_file_records, cat_count_initial + (idx_attempt + 1))
+            pct_scanned = (total_scanned / total_file_records * 100) if total_file_records > 0 else 0
+            print(f"[CAT_{mode.upper()}] Tiến trình: {total_scanned} / {total_file_records} bản ghi đã quét ({pct_scanned:.1f}%)")
 
         # Đóng trình duyệt
         if USE_MY_CHROME_PROFILE:

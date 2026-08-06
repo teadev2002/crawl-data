@@ -73,7 +73,7 @@ STANDARD_KEYS = ["stt", "title", "email", "phone", "address", "url", "totalScore
 
 SERVICE_KEYWORDS_MAP = {
     "hotel": [
-        "hotel", "motel", "khach san", "khách sạn", "nha nghi", "nhà nghỉ",
+        "hotel", "motel", "khach san", "khách sạn", "nha nghi", "nhà nghỉ","resort"
         "homestay", "home stay", "condotel", "phòng nghỉ",
         "phong nghi", "lưu trú", "luu tru","bungalow", "N/A"
     ],
@@ -526,16 +526,19 @@ def scrape_google_maps_multi(queries, max_results=400, output_file="hotels.json"
                     no_change_count = 0
                     last_count = cur_cnt
 
-                feed_locator = page.locator('div[role="feed"]').first
-                if feed_locator.count() > 0:
-                    try:
-                        page.evaluate('(el) => el.scrollTop = el.scrollHeight', feed_locator.element_handle())
-                    except Exception:
+                try:
+                    feed_locator = page.locator('div[role="feed"]').first
+                    if feed_locator.count() > 0:
+                        try:
+                            page.evaluate('(el) => el.scrollTop = el.scrollHeight', feed_locator.element_handle())
+                        except Exception:
+                            page.keyboard.press('End')
+                    else:
                         page.keyboard.press('End')
-                else:
-                    page.keyboard.press('End')
-                    
-                page.evaluate("window.scrollBy(0, 3000)")
+                        
+                    page.evaluate("window.scrollBy(0, 3000)")
+                except Exception as scroll_err:
+                    print(f"[!] [{mode.upper()}] Thao tác cuộn trang gặp sự cố ({scroll_err}). Đang bỏ qua cuộn trang...")
                 time.sleep(0.8)
 
             print(f"[*] [{mode.upper()}] Từ khóa '{query}': Thu thập được {len(current_query_urls)} liên kết ứng viên mới. Tiến hành bóc tách chi tiết...")
@@ -567,108 +570,112 @@ def scrape_google_maps_multi(queries, max_results=400, output_file="hotels.json"
 
                 print(f"[{mode.upper()}] Đang crawl [{i+1}/{len(current_query_urls)}]: {url}")
                 try:
-                    page.goto(url, wait_until='domcontentloaded', timeout=30000)
-                    page.wait_for_selector('h1', timeout=1500)
-                except Exception as goto_err:
-                    pass
-                time.sleep(0.3)
-
-                title_raw = page.locator('h1').first.inner_text() if page.locator('h1').count() > 0 else "N/A"
-                title = clean_text(title_raw)
-
-                # Category Name (Loại hình kinh doanh)
-                cat_text = ""
-                cat_elements = page.locator('button[jsaction*="category"], button[data-item-id*="category"]').all()
-                if cat_elements:
-                    cat_text = clean_text(cat_elements[0].inner_text())
-
-                if not cat_text:
                     try:
-                        header_text = page.locator('div[role="main"]').first.inner_text()
-                        if "·" in header_text:
-                            for line in header_text.split('\n'):
-                                if "·" in line:
-                                    parts = line.split("·")
-                                    if len(parts) > 1:
-                                        candidate = parts[1].strip()
-                                        if candidate and len(candidate) < 60:
-                                            cat_text = clean_text(candidate)
-                                            break
-                    except Exception:
+                        page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                        page.wait_for_selector('h1', timeout=1500)
+                    except Exception as goto_err:
                         pass
-                
-                title_ok = is_allowed_title(title)
-                cat_ok = is_allowed_category(cat_text)
-                
-                if not (title_ok or cat_ok):
-                    print(f"[-] [{mode.upper()}] Bỏ qua '{title}' (Category: '{cat_text}'): Không thỏa mãn từ khóa chỉ định ở Tên lẫn Loại hình.")
+                    time.sleep(0.3)
+
+                    title_raw = page.locator('h1').first.inner_text() if page.locator('h1').count() > 0 else "N/A"
+                    title = clean_text(title_raw)
+
+                    # Category Name (Loại hình kinh doanh)
+                    cat_text = ""
+                    cat_elements = page.locator('button[jsaction*="category"], button[data-item-id*="category"]').all()
+                    if cat_elements:
+                        cat_text = clean_text(cat_elements[0].inner_text())
+
+                    if not cat_text:
+                        try:
+                            header_text = page.locator('div[role="main"]').first.inner_text()
+                            if "·" in header_text:
+                                for line in header_text.split('\n'):
+                                    if "·" in line:
+                                        parts = line.split("·")
+                                        if len(parts) > 1:
+                                            candidate = parts[1].strip()
+                                            if candidate and len(candidate) < 60:
+                                                cat_text = clean_text(candidate)
+                                                break
+                        except Exception:
+                            pass
+                    
+                    title_ok = is_allowed_title(title)
+                    cat_ok = is_allowed_category(cat_text)
+                    
+                    if not (title_ok or cat_ok):
+                        print(f"[-] [{mode.upper()}] Bỏ qua '{title}' (Category: '{cat_text}'): Không thỏa mãn từ khóa chỉ định ở Tên lẫn Loại hình.")
+                        continue
+                    
+                    address_elements = page.locator('button[data-item-id^="address"]').all()
+                    address_raw = address_elements[0].inner_text() if address_elements else "N/A"
+                    address = clean_text(address_raw)
+
+                    # Kiểm tra lọc khu vực Tỉnh / Thành phố
+                    if not is_allowed_location(url, address):
+                        sel_prov = CONFIG.get("target_province", "all")
+                        print(f"[-] [{mode.upper()}] Bỏ qua '{title}' (Địa chỉ: '{address}'): Nằm ngoài khu vực tỉnh thành đã chọn ({sel_prov}).")
+                        continue
+
+                    phone_elements = page.locator('button[data-item-id^="phone"]').all()
+                    phone_raw = phone_elements[0].inner_text() if phone_elements else ""
+                    phone = re.sub(r'[^0-9+]', '', phone_raw) if phone_raw else ""
+
+                    website_elements = page.locator('a[data-item-id="authority"], a[aria-label*="Website"], a[aria-label*="Trang web"], a[aria-label*="website"], a[aria-label*="trang web"]').all()
+                    website = website_elements[0].get_attribute('href') if website_elements else ""
+
+                    rating_text = (
+                        page.locator('div[role="img"][aria-label*="stars"], div[role="img"][aria-label*="sao"]')
+                        .first.get_attribute('aria-label')
+                        if page.locator('div[role="img"][aria-label*="stars"], div[role="img"][aria-label*="sao"]').count() > 0
+                        else ""
+                    )
+                    rating_match = re.search(r'(\d+[\.,]\d+|\d+)', rating_text)
+                    if rating_match:
+                        rating_val = rating_match.group(1).replace(',', '.')
+                        rating = f"{float(rating_val):.1f}"
+                    else:
+                        rating = ""
+
+                    place_id = extract_place_id(url)
+                    item_url = f"https://www.google.com/maps/search/?api=1&query={title.replace(' ', '%20')}&query_place_id={place_id}" if place_id else url
+
+                    final_key = extract_unique_key(item_url)
+                    if final_key and final_key in existing_keys:
+                        print(f"[-] Bỏ qua (Đã tồn tại trong danh sách cũ sau đối chiếu URL thực tế): {item_url}")
+                        continue
+
+                    item = format_standard_record({
+                        "stt": len(existing_records) + len(results) + 1,
+                        "title": title,
+                        "email": "",
+                        "phone": phone,
+                        "address": address,
+                        "url": item_url,
+                        "totalScore": rating,
+                        "website": website,
+                        "facebook": "",
+                        "categoryName": cat_text,
+                        "source": "",
+                        "isFlag": False
+                    })
+
+                    saved_success, total_file_records = safe_save_record(output_file, item)
+                    if saved_success:
+                        results.append(item)
+                        thread_saved_count += 1
+                        if final_key:
+                            existing_keys.add(final_key)
+                        print(f"✓ [{mode.upper()}] Real-Time Save #{total_file_records} (Luồng: {thread_saved_count}/{thread_target} bản ghi): {title} - {phone}")
+                        if total_file_records >= max_results:
+                            print(f"\n[+] [{mode.upper()}] Tổng số bản ghi trong file đã đạt chỉ tiêu tối đa ({total_file_records}/{max_results} bản ghi)! Hoàn thành!")
+                            break
+                    else:
+                        print(f"[-] Bỏ qua STT (Đã được luồng kia lưu trước): {title}")
+                except Exception as extract_err:
+                    print(f"[!] [{mode.upper()}] Bỏ qua URL do sự cố trang ({extract_err}): {url}")
                     continue
-                
-                address_elements = page.locator('button[data-item-id^="address"]').all()
-                address_raw = address_elements[0].inner_text() if address_elements else "N/A"
-                address = clean_text(address_raw)
-
-                # Kiểm tra lọc khu vực Tỉnh / Thành phố
-                if not is_allowed_location(url, address):
-                    sel_prov = CONFIG.get("target_province", "all")
-                    print(f"[-] [{mode.upper()}] Bỏ qua '{title}' (Địa chỉ: '{address}'): Nằm ngoài khu vực tỉnh thành đã chọn ({sel_prov}).")
-                    continue
-
-                phone_elements = page.locator('button[data-item-id^="phone"]').all()
-                phone_raw = phone_elements[0].inner_text() if phone_elements else ""
-                phone = re.sub(r'[^0-9+]', '', phone_raw) if phone_raw else ""
-
-                website_elements = page.locator('a[data-item-id="authority"], a[aria-label*="Website"], a[aria-label*="Trang web"], a[aria-label*="website"], a[aria-label*="trang web"]').all()
-                website = website_elements[0].get_attribute('href') if website_elements else ""
-
-                rating_text = (
-                    page.locator('div[role="img"][aria-label*="stars"], div[role="img"][aria-label*="sao"]')
-                    .first.get_attribute('aria-label')
-                    if page.locator('div[role="img"][aria-label*="stars"], div[role="img"][aria-label*="sao"]').count() > 0
-                    else ""
-                )
-                rating_match = re.search(r'(\d+[\.,]\d+|\d+)', rating_text)
-                if rating_match:
-                    rating_val = rating_match.group(1).replace(',', '.')
-                    rating = f"{float(rating_val):.1f}"
-                else:
-                    rating = ""
-
-                place_id = extract_place_id(url)
-                item_url = f"https://www.google.com/maps/search/?api=1&query={title.replace(' ', '%20')}&query_place_id={place_id}" if place_id else url
-
-                final_key = extract_unique_key(item_url)
-                if final_key and final_key in existing_keys:
-                    print(f"[-] Bỏ qua (Đã tồn tại trong danh sách cũ sau đối chiếu URL thực tế): {item_url}")
-                    continue
-
-                item = format_standard_record({
-                    "stt": len(existing_records) + len(results) + 1,
-                    "title": title,
-                    "email": "",
-                    "phone": phone,
-                    "address": address,
-                    "url": item_url,
-                    "totalScore": rating,
-                    "website": website,
-                    "facebook": "",
-                    "categoryName": cat_text,
-                    "source": "",
-                    "isFlag": False
-                })
-
-                saved_success, total_file_records = safe_save_record(output_file, item)
-                if saved_success:
-                    results.append(item)
-                    thread_saved_count += 1
-                    if final_key:
-                        existing_keys.add(final_key)
-                    print(f"✓ [{mode.upper()}] Real-Time Save #{total_file_records} (Luồng: {thread_saved_count}/{thread_target} bản ghi): {title} - {phone}")
-                    if total_file_records >= max_results:
-                        print(f"\n[+] [{mode.upper()}] Tổng số bản ghi trong file đã đạt chỉ tiêu tối đa ({total_file_records}/{max_results} bản ghi)! Hoàn thành!")
-                        break
-                else:
-                    print(f"[-] Bỏ qua STT (Đã được luồng kia lưu trước): {title}")
 
         try:
             if context: context.close()

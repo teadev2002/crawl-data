@@ -92,7 +92,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (msg.includes('STAR_') || msg.includes('STAR_HARVESTER') || msg.includes('star_harvester') || msg.includes('Số Sao')) {
                 setToolFile('star', activeFile);
                 updateToolStatus('star', 'running', 'Đang tìm sao');
-            } else if (msg.includes('CategoryName') || msg.includes('cat_repair') || msg.includes('Category')) {
+            } else if (msg.includes('MISMATCH') || msg.includes('mismatch_repairer') || msg.includes('lệch dòng')) {
+                setToolFile('mismatch', activeFile);
+                updateToolStatus('mismatch', 'running', 'Đang sửa lệch');
+            } else if (msg.includes('CAT_') || msg.includes('CategoryName') || msg.includes('cat_repair') || msg.includes('category_repairer') || msg.includes('Category')) {
                 setToolFile('cat', activeFile);
                 updateToolStatus('cat', 'running', 'Đang dò');
             } else if (msg.includes('Info_Repair') || msg.includes('info_repairer') || msg.includes("dính lỗi 'N/A'")) {
@@ -107,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const isCatLog = msg.includes('CategoryName') || msg.includes('cat_repair') || msg.includes('Category');
+        const isCatLog = msg.includes('CAT_') || msg.includes('CategoryName') || msg.includes('cat_repair') || msg.includes('category_repairer') || msg.includes('Category') || msg.includes('category');
         const isInfoLog = msg.includes('Info_Repair') || msg.includes('info_repairer') || msg.includes("dính lỗi 'N/A'");
         const isEmailLog = msg.includes('EMAIL') || msg.includes('email_harvester') || msg.includes('thiếu email');
         const isMapLog = msg.includes('MAP') || msg.includes('map_scraper') || msg.includes('cào google maps');
@@ -159,25 +162,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 3. CATEGORY REPAIRER
         if (isCatLog) {
-            const catTotalMatch = msg.match(/Phát hiện (\d+) bản ghi/i);
-            if (catTotalMatch) {
-                progressTotals.cat = parseInt(catTotalMatch[1]) || 100;
-                progressCurrents.cat = 0;
-                updateToolProgress('cat', 0, progressTotals.cat);
-                updateToolStatus('cat', 'running', 'Đang dò');
-            }
-            const catProgressMatch = msg.match(/\[CategoryName\] Đang phục hồi \[(\d+)\/(\d+)\]/i) || msg.match(/CategoryName/i);
-            if (catProgressMatch) {
-                if (catProgressMatch[1] && catProgressMatch[2]) {
-                    progressCurrents.cat = parseInt(catProgressMatch[1]);
-                    progressTotals.cat = parseInt(catProgressMatch[2]) || progressTotals.cat;
-                } else if (msg.includes('Real-Time Save STT') || msg.includes('categoryName:')) {
-                    progressCurrents.cat += 1;
-                }
+            const catFileTotalMatch = msg.match(/Tổng số bản ghi trong file:\s*(\d+)/i);
+            if (catFileTotalMatch) {
+                progressTotals.cat = parseInt(catFileTotalMatch[1]) || progressTotals.cat;
                 updateToolProgress('cat', progressCurrents.cat, progressTotals.cat);
                 updateToolStatus('cat', 'running', 'Đang dò');
             }
-            if (msg.includes('PHỤC HỒI HOÀN TẤT!') || msg.includes('dò category hoàn thành')) {
+            const catProgMatch = msg.match(/Tiến trình:\s*(\d+)\s*\/\s*(\d+)\s*bản ghi/i);
+            if (catProgMatch) {
+                progressCurrents.cat = parseInt(catProgMatch[1]);
+                progressTotals.cat = parseInt(catProgMatch[2]) || progressTotals.cat;
+                updateToolProgress('cat', progressCurrents.cat, progressTotals.cat);
+                updateToolStatus('cat', 'running', 'Đang dò');
+            } else if (msg.includes('Real-Time Save STT') || msg.includes('categoryName:')) {
+                progressCurrents.cat += 1;
+                updateToolProgress('cat', progressCurrents.cat, progressTotals.cat);
+                updateToolStatus('cat', 'running', 'Đang dò');
+            }
+            if (msg.includes('PHỤC HỒI HOÀN TẤT!') || msg.includes('HẠNG MỤC CÁC BẢN GHI ĐÃ ĐẦY ĐỦ')) {
                 updateToolProgress('cat', progressTotals.cat, progressTotals.cat);
                 updateToolStatus('cat', 'completed', 'Hoàn thành');
             }
@@ -225,6 +227,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (msg.includes('HOÀN THÀNH TÌM SỐ SAO!') || msg.includes('HOÀN THÀNH LUỒNG!')) {
                 updateToolStatus('star', 'completed', 'Hoàn thành');
+            }
+        }
+
+        // 6. MISMATCH REPAIRER
+        const isMismatchLog = msg.includes('MISMATCH') || msg.includes('mismatch_repairer') || msg.includes('lệch dòng');
+        if (isMismatchLog) {
+            const mismatchProgMatch = msg.match(/Tiến trình:\s*(\d+)\s*\/\s*(\d+)\s*bản ghi/i);
+            if (mismatchProgMatch) {
+                progressCurrents.mismatch = parseInt(mismatchProgMatch[1]);
+                progressTotals.mismatch = parseInt(mismatchProgMatch[2]) || progressTotals.mismatch;
+                updateToolProgress('mismatch', progressCurrents.mismatch, progressTotals.mismatch);
+                updateToolStatus('mismatch', 'running', 'Đang sửa lệch');
+            }
+            if (msg.includes('HOÀN THÀNH SỬA LỆCH DÒNG!')) {
+                updateToolStatus('mismatch', 'completed', 'Hoàn thành');
             }
         }
     }
@@ -602,6 +619,16 @@ document.addEventListener('DOMContentLoaded', () => {
             updateToolStatus('star', 'running', 'Đang tìm sao');
             const numThreads = getSelectedStarThreads();
             triggerTask(`start/star_${numThreads}way`);
+        });
+    }
+
+    const btnStartMismatch = document.getElementById('btn-start-mismatch-action');
+    if (btnStartMismatch) {
+        btnStartMismatch.addEventListener('click', () => {
+            const curFile = getCurrentOutputFile();
+            setToolFile('mismatch', curFile);
+            updateToolStatus('mismatch', 'running', 'Đang sửa lệch');
+            triggerTask('start/mismatch_repair');
         });
     }
 

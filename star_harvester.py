@@ -187,7 +187,25 @@ def safe_save_record(output_file, new_item):
             temp_file = output_file + f".tmp_star_{os.getpid()}"
             with open(temp_file, 'w', encoding='utf-8') as f:
                 json.dump(records, f, ensure_ascii=False, indent=2)
-            os.replace(temp_file, output_file)
+
+            replaced = False
+            for sub_attempt in range(5):
+                try:
+                    os.replace(temp_file, output_file)
+                    replaced = True
+                    break
+                except (PermissionError, OSError):
+                    time.sleep(0.2)
+
+            if not replaced:
+                try:
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        json.dump(records, f, ensure_ascii=False, indent=2)
+                    if os.path.exists(temp_file):
+                        try: os.remove(temp_file)
+                        except Exception: pass
+                except Exception:
+                    pass
             
             # Đếm tiến trình thực tế trên đĩa
             star_count = sum(1 for r in records if has_existing_stars(r))

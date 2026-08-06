@@ -341,6 +341,12 @@ async def start_star_4way():
 async def start_star_harvester():
     return await start_star_3way()
 
+@app.post("/api/tasks/start/mismatch_repair")
+async def start_mismatch_repair():
+    loop = asyncio.get_event_loop()
+    threading.Thread(target=run_command_stream, args=(["mismatch_repairer.py"], "MISMATCH_REPAIR", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Công Cụ Sửa Lỗi Lệch Dòng Title & URL!"}
+
 @app.post("/api/tasks/stop")
 async def stop_tasks():
     killed = 0
