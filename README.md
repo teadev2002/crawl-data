@@ -44,9 +44,23 @@ Hệ thống tự động hóa cào, thu thập, bóc tách và phục hồi d�
 
 ---
 
-### Tool 4: Sửa & Khôi Phục Bản Ghi Lỗi N/A (`info_repairer.py`)
-* **Rà Soát Dữ Liệu Bị Thiếu:** Tự động tìm các bản ghi dính lỗi `"N/A"` hoặc rỗng ở trường Số Điện Thoại (`phone`) hoặc Địa Chỉ (`address`).
-* **Phục Hồi Chuẩn Xác:** Mở lại trang tìm kiếm chi tiết để bóc tách bổ sung SĐT và địa chỉ chuẩn, giúp bộ dữ liệu đạt độ đầy đủ 100%.
+### Tool 6: Khôi Phục & Sửa Lỗi Lệch Dòng Title & URL (`mismatch_repairer.py`)
+* **Thuật Toán Swapping Tức Thì (< 1s):** Giải mã tên cơ sở ẩn trong đường link `url` (unquote), tạo Bảng tra cứu đối chiếu trong bộ nhớ (In-Memory Lookup Map) và tráo trả dữ liệu `url`, `address`, `phone`, `categoryName`, `totalScore` về đúng vị trí hàng Tên cơ sở (`title`).
+* **Bảo Tồn 100% Dữ Liệu Gốc:** Khôi phục nhanh chóng các file JSON bị tráo dòng/cột do thao tác trên Excel mà không cần cào lại trình duyệt.
+
+---
+
+### Tool 7: Cào Dữ Liệu Booking.com Trực Tiếp (Stage 1) (`booking_harvester.py`)
+* **Cào Trực Tiếp Booking.com Theo Hạng Sao:** Lựa chọn địa điểm (ví dụ: *Ho Chi Minh City*), áp dụng bộ lọc `Hotels` và quét vòng lặp từ **5★ ➔ 4★ ➔ 3★ ➔ 2★ ➔ 1★**.
+* **Lazy Loading & Nạp Nút:** Tự động cuộn trang và nhấp nút `"Load more results"` đến khi nạp hết toàn bộ danh sách khách sạn.
+* **Bóc Tách Chi Tiết Trang Khách Sạn:** Thu thập Tên cơ sở (`pp-header__title`), Địa chỉ chuẩn (`b99b6ef58f...`), Số sao chính xác (`rating-stars` / đếm thẻ `e03979cfad`) và lưu đè đĩa nguyên tử Real-Time!
+
+---
+
+### Tool 8: AI Checking (Google Gemini API) (`ai_checking.py`)
+* **Truy Vấn AI Đa Tầng (`google-genai` / `gemini-3.5-flash`):** Sử dụng Gemini API tự động tạo câu lệnh tìm kiếm Google Maps tối ưu từ Tên + Địa chỉ Booking kèm từ khóa `"map"`.
+* **Thẩm Định Điểm Trùng Khớp ($\ge 70\%$):** Gọi Gemini AI so sánh độ tương đồng Tên và Địa chỉ giữa Booking.com và kết quả Google Maps candidate.
+* **Cập Nhật Link Maps Vào Trường `url` & Bảo Tồn Source:** Khi Match Score $\ge 70\%$, hệ thống lưu link Google Maps vừa tìm được vào trường `url`, điền SĐT (`phone`), Rating (`totalScore`), Website, Facebook và nối nguồn Booking vào trường `source`!
 
 ---
 

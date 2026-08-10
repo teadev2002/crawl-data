@@ -347,6 +347,18 @@ async def start_mismatch_repair():
     threading.Thread(target=run_command_stream, args=(["mismatch_repairer.py"], "MISMATCH_REPAIR", loop), daemon=True).start()
     return {"status": "success", "message": "Đã kích hoạt Công Cụ Sửa Lỗi Lệch Dòng Title & URL!"}
 
+@app.post("/api/tasks/start/booking_harvester")
+async def start_booking_harvester():
+    loop = asyncio.get_event_loop()
+    threading.Thread(target=run_command_stream, args=(["booking_harvester.py"], "BOOKING_HARVESTER", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Cào Booking.com Trực Tiếp (Stage 1)!"}
+
+@app.post("/api/tasks/start/ai_checking")
+async def start_ai_checking():
+    loop = asyncio.get_event_loop()
+    threading.Thread(target=run_command_stream, args=(["ai_checking.py"], "AI_CHECKING", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt AI Checking (Google Gemini API)!"}
+
 @app.post("/api/tasks/stop")
 async def stop_tasks():
     killed = 0

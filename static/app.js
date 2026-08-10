@@ -92,6 +92,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (msg.includes('STAR_') || msg.includes('STAR_HARVESTER') || msg.includes('star_harvester') || msg.includes('Số Sao')) {
                 setToolFile('star', activeFile);
                 updateToolStatus('star', 'running', 'Đang tìm sao');
+            } else if (msg.includes('AI_CHECKING') || msg.includes('ai_checking') || msg.includes('AI Checking')) {
+                setToolFile('aicheck', activeFile);
+                updateToolStatus('aicheck', 'running', 'Đang AI Checking');
+            } else if (msg.includes('BOOKING_HARVESTER') || msg.includes('booking_harvester') || msg.includes('Booking.com')) {
+                setToolFile('booking', activeFile);
+                updateToolStatus('booking', 'running', 'Đang cào Booking');
             } else if (msg.includes('MISMATCH') || msg.includes('mismatch_repairer') || msg.includes('lệch dòng')) {
                 setToolFile('mismatch', activeFile);
                 updateToolStatus('mismatch', 'running', 'Đang sửa lệch');
@@ -242,6 +248,36 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (msg.includes('HOÀN THÀNH SỬA LỆCH DÒNG!')) {
                 updateToolStatus('mismatch', 'completed', 'Hoàn thành');
+            }
+        }
+
+        // 7. BOOKING HARVESTER
+        const isBookingLog = msg.includes('BOOKING_HARVESTER') || msg.includes('booking_harvester') || msg.includes('Booking.com');
+        if (isBookingLog) {
+            const bookingProgMatch = msg.match(/Tiến trình:\s*(\d+)\s*\/\s*(\d+)\s*bản ghi/i);
+            if (bookingProgMatch) {
+                progressCurrents.booking = parseInt(bookingProgMatch[1]);
+                progressTotals.booking = parseInt(bookingProgMatch[2]) || progressTotals.booking;
+                updateToolProgress('booking', progressCurrents.booking, progressTotals.booking);
+                updateToolStatus('booking', 'running', 'Đang cào Booking');
+            }
+            if (msg.includes('HOÀN THÀNH CÀO BOOKING.COM!')) {
+                updateToolStatus('booking', 'completed', 'Hoàn thành');
+            }
+        }
+
+        // 8. AI CHECKING
+        const isAiCheckLog = msg.includes('AI_CHECKING') || msg.includes('ai_checking') || msg.includes('AI Checking');
+        if (isAiCheckLog) {
+            const aiProgMatch = msg.match(/Tiến trình:\s*(\d+)\s*\/\s*(\d+)\s*bản ghi/i);
+            if (aiProgMatch) {
+                progressCurrents.aicheck = parseInt(aiProgMatch[1]);
+                progressTotals.aicheck = parseInt(aiProgMatch[2]) || progressTotals.aicheck;
+                updateToolProgress('aicheck', progressCurrents.aicheck, progressTotals.aicheck);
+                updateToolStatus('aicheck', 'running', 'Đang AI Checking');
+            }
+            if (msg.includes('HOÀN THÀNH AI CHECKING!')) {
+                updateToolStatus('aicheck', 'completed', 'Hoàn thành');
             }
         }
     }
@@ -440,6 +476,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const targetProvinceEl = document.getElementById('cfg-target-province');
             if (targetProvinceEl && cfg.target_province) targetProvinceEl.value = cfg.target_province;
 
+            const targetUrlEl = document.getElementById('cfg-target-url');
+            if (targetUrlEl && cfg.target_url) targetUrlEl.value = cfg.target_url;
+
             // Xử lý nạp cấu hình 1 trong 2 chế độ cào email luôn ON
             if (chkFindAll && chkFindNext) {
                 if (cfg.findNext && !cfg.findAll) {
@@ -462,6 +501,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     loadConfig();
 
+    // Nút Dán nhanh URL từ Clipboard
+    const btnPasteUrl = document.getElementById('btn-paste-url');
+    if (btnPasteUrl) {
+        btnPasteUrl.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    const targetUrlEl = document.getElementById('cfg-target-url');
+                    if (targetUrlEl) {
+                        targetUrlEl.value = text.trim();
+                        appendLog(`[+] Đã dán nhanh liên kết URL mới từ Clipboard!`, 'info');
+                    }
+                }
+            } catch (err) {
+                alert('Không thể tự động đọc Clipboard. Bạn có thể dán liên kết bằng tổ hợp phím Ctrl + V.');
+            }
+        });
+    }
+
     document.getElementById('btn-save-config').addEventListener('click', async () => {
         const searchQueriesEl = document.getElementById('cfg-search-queries');
         const rawQueries = searchQueriesEl ? searchQueriesEl.value : '';
@@ -476,10 +534,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxResultsEl = document.getElementById('cfg-max-results');
         const captchaSoundEl = document.getElementById('cfg-captcha-sound');
         const targetProvinceEl = document.getElementById('cfg-target-province');
+        const targetUrlEl = document.getElementById('cfg-target-url');
         const newMaxResults = maxResultsEl ? (parseInt(maxResultsEl.value) || 50) : 50;
 
         const payload = {
             search_queries: queries,
+            target_url: targetUrlEl ? targetUrlEl.value.trim() : '',
             output_file: outputFileEl ? outputFileEl.value.trim() : 'hotels.json',
             max_results: newMaxResults,
             USE_MY_CHROME_PROFILE: false,
@@ -629,6 +689,26 @@ document.addEventListener('DOMContentLoaded', () => {
             setToolFile('mismatch', curFile);
             updateToolStatus('mismatch', 'running', 'Đang sửa lệch');
             triggerTask('start/mismatch_repair');
+        });
+    }
+
+    const btnStartBooking = document.getElementById('btn-start-booking-action');
+    if (btnStartBooking) {
+        btnStartBooking.addEventListener('click', () => {
+            const curFile = getCurrentOutputFile();
+            setToolFile('booking', curFile);
+            updateToolStatus('booking', 'running', 'Đang cào Booking');
+            triggerTask('start/booking_harvester');
+        });
+    }
+
+    const btnStartAiCheck = document.getElementById('btn-start-aicheck-action');
+    if (btnStartAiCheck) {
+        btnStartAiCheck.addEventListener('click', () => {
+            const curFile = getCurrentOutputFile();
+            setToolFile('aicheck', curFile);
+            updateToolStatus('aicheck', 'running', 'Đang AI Checking');
+            triggerTask('start/ai_checking');
         });
     }
 

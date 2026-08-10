@@ -331,6 +331,62 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- CARD 7: BOOKING DIRECT HARVESTER -->
+                        <div class="action-card">
+                            <div class="tool-card-header">
+                                <div class="tool-title-group">
+                                    <i class="fa-solid fa-hotel tool-icon" style="color: #003580;"></i>
+                                    <h3>7. Cào Booking.com Trực Tiếp (Stage 1)</h3>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-booking-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                    <span class="file-name" id="file-output-booking">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-booking">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-booking">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill" id="prog-bar-booking" style="width: 0%; background: linear-gradient(90deg, #003580, #005bb5);"></div>
+                                </div>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-primary" id="btn-start-booking-action" style="background-color: #003580; border-color: #002244;">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> 🚀 Cào Booking.com (5★ ➔ 1★)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- CARD 8: AI CHECKING -->
+                        <div class="action-card">
+                            <div class="tool-card-header">
+                                <div class="tool-title-group">
+                                    <i class="fa-solid fa-brain tool-icon" style="color: #8b5cf6;"></i>
+                                    <h3>8. AI Checking</h3>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-aicheck-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                    <span class="file-name" id="file-output-aicheck">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-aicheck">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-aicheck">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill" id="prog-bar-aicheck" style="width: 0%; background: linear-gradient(90deg, #8b5cf6, #a78bfa);"></div>
+                                </div>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-primary" id="btn-start-aicheck-action" style="background-color: #8b5cf6; border-color: #7c3aed;">
+                                    <i class="fa-solid fa-robot"></i> 🚀 AI Checking (Gemini API)
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -414,6 +470,23 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- TARGET WEBSITE URL CARD -->
+                        <div class="config-card full-width" style="border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.08); margin-bottom: 20px; border-radius: 12px; padding: 16px;">
+                            <label class="config-label" style="color: #60a5fa; font-size: 1.05rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span><i class="fa-solid fa-globe"></i> Liên Kết Website Cào Dữ Liệu (`target_url`)</span>
+                                <span class="badge" style="background: #2563eb; color: #fff;">ĐƯỜNG DẪN MỤC TIÊU</span>
+                            </label>
+                            <p class="config-desc" style="color: #cbd5e1; margin-bottom: 10px;">
+                                Dán hoặc thay đổi liên kết URL trang web cần cào dữ liệu tại đây (Ví dụ: Booking.com, Agoda.com, Google Maps, hoặc trang web bất kỳ):
+                            </p>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="url" id="cfg-target-url" placeholder="https://www.booking.com/searchresults.en-gb.html?ss=Ho+Chi+Minh+City..." style="flex: 1; padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid #3b82f6; background-color: #0f172a; color: #f8fafc; font-size: 0.98rem; outline: none;">
+                                <button class="btn btn-primary" id="btn-paste-url" type="button" style="background: #2563eb; border: none; white-space: nowrap; padding: 0 16px; border-radius: 8px; font-weight: 500; cursor: pointer;">
+                                    <i class="fa-solid fa-paste"></i> Dán nhanh
+                                </button>
                             </div>
                         </div>
 
