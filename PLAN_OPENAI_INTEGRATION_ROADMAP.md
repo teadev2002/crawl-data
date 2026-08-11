@@ -4,12 +4,40 @@ Tài liệu ghi nhớ kế hoạch chiến lược mở rộng hệ thống: K�
 
 ---
 
-## 🎯 1. MỤC TIÊU DỰ ÁN
+ MỤC TIÊU chức năng AI Checking
 
-1. **Bổ sung nguồn dữ liệu:** Lấy danh sách tên cơ sở + địa chỉ gốc từ một trang web trung gian (ví dụ: Trang vàng, danh bạ du lịch, cổng thông tin...).
-2. **Đối chiếu & Làm giàu dữ liệu:** Dùng Google Maps để cào bổ sung các trường thông tin bị thiếu: Số điện thoại, Tọa độ GPS, Đánh giá TotalScore, Website chính thức, Trang Facebook, Link Google Maps.
-3. **Thẩm định bằng AI (ChatGPT API):** Tự động so sánh bản ghi từ trang trung gian với kết quả Google Maps, tính điểm độ tin cậy trùng khớp ($0-100\%$), tự động sửa lỗi chính tả/viết tắt và gộp thành 1 bản ghi Master chuẩn xác tuyệt đối.
+ Bổ sung nguồn dữ liệu: Lấy danh sách tên cơ sở + địa chỉ gốc từ file output viết thành search query như đang chat box với AI "title + address + url map" để AI trả lời rồi lấy url map AI phản hồi vào link map đó kiểm tra xem đúng tên cơ sở ( title ) và địa chỉ ( address) không, nếu đúng trên 70% thì lấy thêm field phone, điền vào field phone và link trên google map và điền vào field url, nếu dưới 70% so với dữ liệu đang tìm thì giữ nguyên record và next qua record khác. Đối với 1 happy case sau khi tìm kiếm sẽ có response:
+{
+    "stt": 155,
+    "title": "Vsana Vu Son Hotel",
+    "email": "",
+    "phone": "0913796386",
+    "address": "Hồ Xuân Hương, Sầm Sơn, Việt Nam",
+    "url": "https://www.google.com/maps/place/Kh%C3%A1ch+s%E1%BA%A1n+V%C5%A9+S%C6%A1n/@19.7557868,105.9131843,825m/data=!3m2!1e3!4b1!4m6!3m5!1s0x313650e6aaaaaaab:0x83b4d3183c44390b!8m2!3d19.7557868!4d105.9131843!16s%2Fg%2F11c5sskgqz?entry=ttu&g_ep=EgoyMDI2MDgwNS4xIKXMDSoASAFQAw%3D%3D",
+    "totalScore": "",
+    "website": "",
+    "facebook": "",
+    "categoryName": "3-star hotel",
+    "source": "Booking: https://www.booking.com/hotel/vn/vsana-vu-son.vi.html?aid=304142&label=gen173nr-10CAQoggJCEXNlYXJjaF90aGFuaCBow7NhSCpYBGj0AYgBAZgBM7gBF8gBDNgBA-gBAfgBAYgCAagCAbgC9qTn0wbAAgHSAiQ4NDk3YmMzNy0wOGM1LTQyOTktOTdmMi02MzVkNzQ4Y2RjZTbYAgHgAgE&ucfs=1&arphpl=1&group_adults=2&req_adults=2&no_rooms=1&group_children=0&req_children=0&hpos=14&hapos=64&sr_order=popularity&nflt=class%3D3&srpvid=915c5efbc785149c&srepoch=1786368667&from=searchresults",
+    "isFlag": false
+  }
 
+đối với worst case thì response sẽ là:
+{
+    "stt": 155,
+    "title": "Vsana Vu Son Hotel",
+    "email": "",
+    "phone": "",
+    "address": "Hồ Xuân Hương, Sầm Sơn, Việt Nam",
+    "url": "https://www.booking.com/hotel/vn/vsana-vu-son.vi.html?aid=304142&label=gen173nr-10CAQoggJCEXNlYXJjaF90aGFuaCBow7NhSCpYBGj0AYgBAZgBM7gBF8gBDNgBA-gBAfgBAYgCAagCAbgC9qTn0wbAAgHSAiQ4NDk3YmMzNy0wOGM1LTQyOTktOTdmMi02MzVkNzQ4Y2RjZTbYAgHgAgE&ucfs=1&arphpl=1&group_adults=2&req_adults=2&no_rooms=1&group_children=0&req_children=0&hpos=14&hapos=64&sr_order=popularity&nflt=class%3D3&srpvid=915c5efbc785149c&srepoch=1786368667&from=searchresults",
+    "totalScore": "",
+    "website": "",
+    "facebook": "",
+    "categoryName": "3-star hotel",
+    "source": "Booking: https://www.booking.com/hotel/vn/vsana-vu-son.vi.html?aid=304142&label=gen173nr-10CAQoggJCEXNlYXJjaF90aGFuaCBow7NhSCpYBGj0AYgBAZgBM7gBF8gBDNgBA-gBAfgBAYgCAagCAbgC9qTn0wbAAgHSAiQ4NDk3YmMzNy0wOGM1LTQyOTktOTdmMi02MzVkNzQ4Y2RjZTbYAgHgAgE&ucfs=1&arphpl=1&group_adults=2&req_adults=2&no_rooms=1&group_children=0&req_children=0&hpos=14&hapos=64&sr_order=popularity&nflt=class%3D3&srpvid=915c5efbc785149c&srepoch=1786368667&from=searchresults",
+    "isFlag": false
+  }
+ tự động sửa lỗi chính tả/viết tắt 
 ---
 
 ## 🏗️ 2. KIẾN TRÚC LUỒNG XỬ LÝ 4 GIAI ĐOẠN (DATA PIPELINE)
@@ -41,7 +69,7 @@ Tài liệu ghi nhớ kế hoạch chiến lược mở rộng hệ thống: K�
 - Trích xuất 2 trường cốt lõi: `Tên cơ sở thô` và `Địa chỉ thô`.
 
 ### Giai Đoạn 2: AI Chuẩn Hóa & Tạo Từ Khóa (`ai_enricher.py`)
-- Gửi `Tên thô` + `Địa chỉ thô` qua **ChatGPT API (`gpt-4o-mini`)**.
+- Gửi `Tên thô` + `Địa chỉ thô` qua **ChatGPT API (`gpt-4o-mini`)** them từ keyword "map".
 - AI phân tích và trả về định dạng JSON:
   - `clean_title`: Tên đã sửa chính tả và giải mã từ viết tắt (`KS` ➔ `Khách sạn`, `DNTN` ➔ `Doanh nghiệp tư nhân`).
   - `clean_province`: Tỉnh/Thành phố chuẩn.
