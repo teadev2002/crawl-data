@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import shutil
+import unicodedata
 from urllib.parse import quote_plus, unquote
 
 # Cấu hình stdout/stderr sang UTF-8 để hiển thị tiếng Việt mượt mà trên console Windows
@@ -74,7 +75,7 @@ def get_gemini_client():
         elif genai_module == "google.generativeai":
             import google.generativeai as genai_old
             genai_old.configure(api_key=api_key)
-            model = genai_old.GenerativeModel("gemini-2.5-flash")
+            model = genai_old.GenerativeModel("gemini-1.5-flash")
             return model, api_key
     except Exception as e:
         print(f"[!] Lỗi khi khởi tạo Gemini Client: {e}")
@@ -85,6 +86,11 @@ def clean_text(text):
         return ""
     cleaned = re.sub(r'[\u200e\u200f\u200b\ufeff\n\r\t\ue000-\uf8ff]', ' ', str(text))
     return re.sub(r'\s+', ' ', cleaned).strip()
+
+def strip_vietnamese_accents(s):
+    if not s: return ""
+    nfkd = unicodedata.normalize('NFD', s)
+    return "".join([c for c in nfkd if unicodedata.category(c) != 'Mn']).lower().strip()
 
 def fix_vietnamese_abbreviations(text):
     """Tự động sửa lỗi chính tả, chuẩn hóa các từ viết tắt phổ biến trong địa chỉ/tên địa điểm Việt Nam."""
@@ -115,6 +121,20 @@ def fix_vietnamese_abbreviations(text):
             pass
 
     return clean_text(t)
+
+def calculate_title_similarity(title1, title2):
+    """Tính tỷ lệ % giống nhau giữa 2 tên cơ sở"""
+    t1 = strip_vietnamese_accents(title1)
+    t2 = strip_vietnamese_accents(title2)
+    if not t1 or not t2:
+        return 0
+    words1 = set(re.findall(r'\w+', t1))
+    words2 = set(re.findall(r'\w+', t2))
+    if not words1 or not words2:
+        return 0
+    overlap = len(words1.intersection(words2))
+    total = max(len(words1), len(words2))
+    return int((overlap / total) * 100)
 
 def format_standard_record(r, default_stt=1):
     formatted = {}
@@ -182,7 +202,7 @@ def safe_save_record(output_file, updated_item):
 
 def query_gemini_chatbox(client, user_query_prompt):
     """
-    Gửi prompt dạng Chat Box tới Gemini AI và nhận phản hồi theo đúng cấu trúc hình ảnh:
+    Gửi prompt dạng Chat Box tới Gemini AI và nhận phản hồi theo đúng cấu trúc:
     Thông tin địa điểm:
     - Tên: ...
     - Địa chỉ: ...
@@ -209,20 +229,21 @@ def query_gemini_chatbox(client, user_query_prompt):
     try:
         if genai_module == "google.genai":
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-1.5-flash",
                 contents=prompt
             )
             return response.text if response else ""
         elif genai_module == "google.generativeai":
             response = client.generate_content(prompt)
             return response.text if response else ""
-    except Exception:
+    except Exception as err:
+        print(f"[{mode_tag}] [!] Gemini API Exception: {err}")
         pass
     
     return ""
 
 def extract_map_url_and_info_from_ai_response(ai_response_text):
-    """Trích xuất link Google Maps URL và SĐT từ đoạn văn bản phản hồi của Gemini AI"""
+    """Trích xuất link Google Maps URL, SĐT, Tên & Địa chỉ từ đoạn văn bản phản hồi của Gemini AI"""
     result = {
         "map_url": "",
         "phone": "",
@@ -269,18 +290,7 @@ def evaluate_match_score_with_gemini(client, booking_title, booking_address, map
     clean_ma = fix_vietnamese_abbreviations(maps_address)
 
     if not client:
-        import unicodedata
-        def strip_accents(s):
-            nfkd = unicodedata.normalize('NFD', s)
-            return "".join([c for c in nfkd if unicodedata.category(c) != 'Mn']).lower().strip()
-        
-        set1 = set(re.findall(r'\w+', strip_accents(clean_bt + " " + clean_ba)))
-        set2 = set(re.findall(r'\w+', strip_accents(clean_mt + " " + clean_ma)))
-        if not set1 or not set2:
-            return 0
-        overlap = len(set1.intersection(set2))
-        total = max(len(set1), 1)
-        return int((overlap / total) * 100)
+        return calculate_title_similarity(clean_bt + " " + clean_ba, clean_mt + " " + clean_ma)
 
     prompt = (
         f"Hãy so sánh độ tương đồng (từ 0% đến 100%) giữa 2 địa điểm dưới đây, tự động bỏ qua lỗi viết tắt/chính tả:\n\n"
@@ -296,7 +306,7 @@ def evaluate_match_score_with_gemini(client, booking_title, booking_address, map
     try:
         if genai_module == "google.genai":
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-1.5-flash",
                 contents=prompt
             )
             match = re.search(r'(\d+)', response.text)
@@ -310,7 +320,7 @@ def evaluate_match_score_with_gemini(client, booking_title, booking_address, map
     except Exception:
         pass
     
-    return 50
+    return calculate_title_similarity(clean_bt, clean_mt)
 
 def run_ai_checking(input_file=None):
     if not input_file:
@@ -393,60 +403,86 @@ def run_ai_checking(input_file=None):
             extracted_phone = ai_extracted["phone"]
             maps_title_from_ai = ai_extracted["name"]
             maps_addr_from_ai = ai_extracted["address"]
+            extracted_website = ""
 
-            # BƯỚC 4: Nếu chưa có map_url từ AI response, tiến hành search Google Maps trực tiếp bằng Playwright
-            if not target_map_url:
-                search_maps_page_url = f"https://www.google.com/maps/search/{quote_plus(chat_user_prompt)}"
-                try:
-                    page.goto(search_maps_page_url, wait_until='domcontentloaded', timeout=35000)
-                    time.sleep(2.0)
+            # BƯỚC 4: Tìm kiếm trực tiếp trên Google Maps để quét danh sách & lớp xxVWCe
+            search_maps_page_url = f"https://www.google.com/maps/search/{quote_plus(chat_user_prompt)}"
+            try:
+                page.goto(search_maps_page_url, wait_until='domcontentloaded', timeout=35000)
+                time.sleep(2.0)
 
-                    feed_locator = page.locator('div[role="feed"]')
-                    if feed_locator.count() > 0:
-                        first_card = page.locator('a[href*="/maps/place/"]').first
-                        if first_card.count() > 0:
-                            first_card.click()
-                            time.sleep(2.0)
+                # NẾU RƠI VÀO GIAO DIỆN DANH SÁCH (ROLE="FEED"), QUÉT QUA CÁC ITEM THẺ BÀI CLASS="xxVWCe"
+                feed_locator = page.locator('div[role="feed"]')
+                if feed_locator.count() > 0 or page.locator('.xxVWCe').count() > 0:
+                    title_nodes = page.locator('.xxVWCe, div.qBF1Pd, a[href*="/maps/place/"]').all()
+                    best_match_card = None
+                    best_match_score = 0
+                    best_card_title = ""
 
-                    target_map_url = page.url
+                    for t_node in title_nodes:
+                        try:
+                            card_text = clean_text(t_node.inner_text())
+                            if not card_text: continue
+                            
+                            sim_score = calculate_title_similarity(title, card_text)
+                            if sim_score >= 50 and sim_score > best_match_score:
+                                best_match_score = sim_score
+                                best_match_card = t_node
+                                best_card_title = card_text
+                        except Exception:
+                            continue
 
-                    if not maps_title_from_ai:
-                        h1_el = page.locator('h1.DUwfe, h1.fontHeadlineLarge').first
-                        if h1_el.count() > 0:
-                            maps_title_from_ai = clean_text(h1_el.inner_text())
+                    if best_match_card and best_match_score >= 50:
+                        print(f"[{mode_tag}] [+] Đã tìm thấy Item trong danh sách khớp class '.xxVWCe': '{best_card_title}' (Tỷ lệ khớp tên: {best_match_score}%)")
+                        best_match_card.click()
+                        time.sleep(2.0)
 
-                    if not extracted_phone:
-                        phone_btn = page.locator('button[data-tooltip*="phone"], button[data-item-id*="phone"]').first
-                        if phone_btn.count() > 0:
-                            extracted_phone = clean_text(phone_btn.inner_text())
+                target_map_url = page.url
 
-                    if not maps_addr_from_ai:
-                        addr_btn = page.locator('button[data-item-id="address"]').first
-                        if addr_btn.count() > 0:
-                            maps_addr_from_ai = clean_text(addr_btn.inner_text())
-                except Exception as crawl_err:
-                    print(f"[{mode_tag}] [!] Lỗi cào Google Maps candidate: {crawl_err}")
+                # Bóc tách Tên trên Google Maps
+                h1_el = page.locator('h1.DUwfe, h1.fontHeadlineLarge').first
+                if h1_el.count() > 0:
+                    maps_title_from_ai = clean_text(h1_el.inner_text())
 
-            # BƯỚC 5: Tự động truy cập vào Link URL Maps để thực hiện Checking độ trùng khớp
-            if target_map_url and "google.com/maps" in target_map_url:
+                # Bóc tách SĐT
+                phone_btn = page.locator('button[data-tooltip*="phone"], button[data-item-id*="phone"]').first
+                if phone_btn.count() > 0:
+                    extracted_phone = clean_text(phone_btn.inner_text())
+
+                # Bóc tách Địa chỉ
+                addr_btn = page.locator('button[data-item-id="address"]').first
+                if addr_btn.count() > 0:
+                    maps_addr_from_ai = clean_text(addr_btn.inner_text())
+
+                # Bóc tách Website
+                web_btn = page.locator('a[data-item-id="authority"], a[aria-label*="website"], a[aria-label*="Trang web"]').first
+                if web_btn.count() > 0:
+                    extracted_website = web_btn.get_attribute('href') or ""
+
+            except Exception as crawl_err:
+                print(f"[{mode_tag}] [!] Lỗi cào Google Maps candidate: {crawl_err}")
+
+            # BƯỚC 5: Tự động truy cập vào Link URL Maps để thực hiện Checking độ trùng khớp thực tế
+            if target_map_url and "google.com/maps/place" in target_map_url:
                 try:
                     page.goto(target_map_url, wait_until='domcontentloaded', timeout=30000)
                     time.sleep(1.5)
 
-                    if not maps_title_from_ai:
-                        h1_el = page.locator('h1.DUwfe, h1.fontHeadlineLarge').first
-                        if h1_el.count() > 0:
-                            maps_title_from_ai = clean_text(h1_el.inner_text())
+                    h1_el = page.locator('h1.DUwfe, h1.fontHeadlineLarge').first
+                    if h1_el.count() > 0:
+                        maps_title_from_ai = clean_text(h1_el.inner_text())
 
-                    if not extracted_phone:
-                        phone_btn = page.locator('button[data-tooltip*="phone"], button[data-item-id*="phone"]').first
-                        if phone_btn.count() > 0:
-                            extracted_phone = clean_text(phone_btn.inner_text())
+                    phone_btn = page.locator('button[data-tooltip*="phone"], button[data-item-id*="phone"]').first
+                    if phone_btn.count() > 0:
+                        extracted_phone = clean_text(phone_btn.inner_text())
 
-                    if not maps_addr_from_ai:
-                        addr_btn = page.locator('button[data-item-id="address"]').first
-                        if addr_btn.count() > 0:
-                            maps_addr_from_ai = clean_text(addr_btn.inner_text())
+                    addr_btn = page.locator('button[data-item-id="address"]').first
+                    if addr_btn.count() > 0:
+                        maps_addr_from_ai = clean_text(addr_btn.inner_text())
+
+                    web_btn = page.locator('a[data-item-id="authority"], a[aria-label*="website"], a[aria-label*="Trang web"]').first
+                    if web_btn.count() > 0:
+                        extracted_website = web_btn.get_attribute('href') or ""
                 except Exception:
                     pass
 
@@ -461,7 +497,7 @@ def run_ai_checking(input_file=None):
                 matched_count += 1
                 print(f"[{mode_tag}] ✓ HAPPY CASE (>= 50%): Tìm thấy địa điểm trùng khớp trên Google Maps!")
 
-                # LƯU Ý QUAN TRỌNG: Ở FIELD `url` SẼ LƯU LINK URL MAP KHI HAPPY CASE
+                # ĐỔI FIELD `url` THÀNH LINK URL MAP KHI HAPPY CASE
                 r["url"] = target_map_url
                 
                 # Bổ sung SĐT nếu có
@@ -469,12 +505,16 @@ def run_ai_checking(input_file=None):
                     digits = re.sub(r'\D', '', extracted_phone)
                     r["phone"] = digits if len(digits) >= 9 else extracted_phone
 
+                # Bổ sung Website nếu có
+                if extracted_website:
+                    r["website"] = extracted_website
+
                 # Bảo lưu link Booking gốc ở field source và totalScore = ""
                 r["source"] = original_source
                 r["totalScore"] = ""
 
                 safe_save_record(input_file, r)
-                print(f"[{mode_tag}] ✓ ĐÃ LƯU HAPPY CASE - Field 'url' = '{r['url']}' | Phone = '{r['phone']}'")
+                print(f"[{mode_tag}] ✓ ĐÃ LƯU HAPPY CASE - Map URL='{r['url'][:45]}...' | Phone='{r['phone']}' | Website='{r.get('website', '')}'")
             else:
                 print(f"[{mode_tag}] [-] WORST CASE (< 50% / Không thấy link): Giữ nguyên dữ liệu record gốc STT {stt}.")
                 if not r.get("phone"):
