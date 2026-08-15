@@ -118,11 +118,29 @@ def apply_hotel_type_filter(page, mode_tag="BOOKING_HARVESTER") -> bool:
         print(f"[{mode_tag}] [!] Không click được bộ lọc Khách sạn: {e}")
     return False
 
+def parse_booking_count(text: str) -> int:
+    """
+    Trích xuất số nguyên chuẩn từ văn bản Booking.com (xử lý các định dạng như 1.621, 3.707, 1,045).
+    """
+    if not text:
+        return 0
+    m = re.search(r'([\d.,]+)\s*(?:chỗ nghỉ|kết quả|properties|found)', text, re.IGNORECASE)
+    if not m:
+        m = re.search(r'\(([\d.,]+)\)', text)
+    if not m:
+        m = re.search(r'([\d.,]+)', text)
+    
+    if m:
+        num_str = m.group(1).replace('.', '').replace(',', '').strip()
+        if num_str.isdigit():
+            return int(num_str)
+    return 0
+
 def toggle_star_filter(page, star: int, enable: bool = True, mode_tag="BOOKING_HARVESTER") -> int:
     count = 0
     try:
         close_popups(page)
-        res = page.evaluate("""
+        res = page.evaluate(r"""
             (args) => {
                 const starNum = args.star;
                 const enable  = args.enable;
@@ -146,8 +164,11 @@ def toggle_star_filter(page, star: int, enable: bool = True, mode_tag="BOOKING_H
                     const parent = el.closest('label') || el.parentElement;
                     if (parent) {
                         const pTxt = parent.innerText || parent.textContent || '';
-                        const m = pTxt.match(/\\((\\d+)\\)/) || pTxt.match(/(\\d+)/);
-                        if (m) foundCount = parseInt(m[1]);
+                        const m = pTxt.match(/\(([\d.,]+)\)/) || pTxt.match(/([\d.,]+)/);
+                        if (m) {
+                            const rawNum = m[1].replace(/\./g, '').replace(/,/g, '').trim();
+                            if (/^\d+$/.test(rawNum)) foundCount = parseInt(rawNum, 10);
+                        }
                     }
                     
                     const isChecked = el.checked || el.getAttribute('aria-checked') === 'true';
@@ -169,9 +190,7 @@ def toggle_star_filter(page, star: int, enable: bool = True, mode_tag="BOOKING_H
                 header_loc = page.locator('h1, [data-component="search-summary"]').first
                 if header_loc.count() > 0:
                     h_text = header_loc.inner_text()
-                    m_cnt = re.search(r'(\d+)\s*(?:chỗ nghỉ|kết quả|properties|found)', h_text, re.IGNORECASE)
-                    if m_cnt:
-                        count = int(m_cnt.group(1))
+                    count = parse_booking_count(h_text)
             except Exception:
                 pass
 
@@ -443,6 +462,16 @@ def run_booking_harvester(input_destination=None, output_file=None):
             page.goto(search_url, timeout=35000, wait_until="domcontentloaded")
             time.sleep(3.5)
             close_popups(page)
+
+            grand_total_target = 0
+            try:
+                header_loc = page.locator('h1, [data-component="search-summary"]').first
+                if header_loc.count() > 0:
+                    h_text = header_loc.inner_text()
+                    grand_total_target = parse_booking_count(h_text)
+                    print(f"[{mode_tag}] [📍 TỔNG CHỖ NGHỈ MỤC TIÊU TỪ <h1>]: {grand_total_target} chỗ nghỉ tại '{input_destination}'")
+            except Exception:
+                pass
 
             print(f"[{mode_tag}] -> Đang áp dụng bộ lọc 'Khách sạn'...")
             apply_hotel_type_filter(page, mode_tag=mode_tag)

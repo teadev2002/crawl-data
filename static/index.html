@@ -513,45 +513,120 @@
                         </div>
 
                         <div class="config-card">
-                            <label class="config-label"><i class="fa-solid fa-location-dot"></i> Giới hạn Tỉnh / Thành phố (`target_province`)</label>
-                            <select id="cfg-target-province" style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color, #334155); background-color: var(--bg-card-input, #1e293b); color: #f8fafc; font-size: 0.95rem; outline: none;">
+                            <label class="config-label"><i class="fa-solid fa-location-dot"></i> Giới hạn Tỉnh / Thành phố (34 tỉnh/thành)</label>
+                            <input type="text" id="cfg-target-province" list="list-prov-34" placeholder="🔍 Gõ tìm trực tiếp hoặc chọn Tỉnh/Thành 34..." style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #3b82f6; background-color: var(--bg-card-input, #1e293b); color: #f8fafc; font-size: 0.95rem; outline: none;" autocomplete="off">
+                            <datalist id="list-prov-34">
+                                <option value="none">-- Bỏ chọn / Sử dụng danh sách 63 tỉnh bên dưới --</option>
                                 <option value="all">Tất cả các tỉnh thành (Tắt lọc khu vực)</option>
-                                <option value="An Giang">An Giang (Kinh tuyến 104°45′)</option>
-                                <option value="Bắc Ninh">Bắc Ninh (Kinh tuyến 107°00′)</option>
-                                <option value="Cà Mau">Cà Mau (Kinh tuyến 104°30′)</option>
-                                <option value="Cao Bằng">Cao Bằng (Kinh tuyến 105°45′)</option>
-                                <option value="Đắc Lắk">Đắc Lắk (Kinh tuyến 108°30′)</option>
-                                <option value="Điện Biên">Điện Biên (Kinh tuyến 103°00′)</option>
-                                <option value="Đồng Nai">Đồng Nai (Kinh tuyến 107°45′)</option>
-                                <option value="Đồng Tháp">Đồng Tháp (Kinh tuyến 105°00′)</option>
-                                <option value="Gia Lai">Gia Lai (Kinh tuyến 108°15′)</option>
-                                <option value="Hà Tĩnh">Hà Tĩnh (Kinh tuyến 105°30′)</option>
-                                <option value="Hưng Yên">Hưng Yên (Kinh tuyến 105°30′)</option>
-                                <option value="Khánh Hòa">Khánh Hòa (Kinh tuyến 108°15′)</option>
-                                <option value="Lai Châu">Lai Châu (Kinh tuyến 104°45′)</option>
-                                <option value="Lạng Sơn">Lạng Sơn (Kinh tuyến 107°15′)</option>
-                                <option value="Lào Cai">Lào Cai (Kinh tuyến 104°45′)</option>
-                                <option value="Lâm Đồng">Lâm Đồng (Kinh tuyến 107°45′)</option>
-                                <option value="Nghệ An">Nghệ An (Kinh tuyến 104°45′)</option>
-                                <option value="Ninh Bình">Ninh Bình (Kinh tuyến 105°00′)</option>
-                                <option value="Phú Thọ">Phú Thọ (Kinh tuyến 104°45′)</option>
-                                <option value="Quảng Ngãi">Quảng Ngãi (Kinh tuyến 108°00′)</option>
-                                <option value="Quảng Ninh">Quảng Ninh (Kinh tuyến 107°45′)</option>
-                                <option value="Quảng Trị">Quảng Trị (Kinh tuyến 106°00′)</option>
-                                <option value="Sơn La">Sơn La (Kinh tuyến 104°00′)</option>
-                                <option value="Tây Ninh">Tây Ninh (Kinh tuyến 105°45′)</option>
-                                <option value="Thái Nguyên">Thái Nguyên (Kinh tuyến 106°30′)</option>
-                                <option value="Thanh Hóa">Thanh Hóa (Kinh tuyến 105°00′)</option>
-                                <option value="Thành phố Cần Thơ">Thành phố Cần Thơ (Kinh tuyến 105°00′)</option>
-                                <option value="Thành phố Đà Nẵng">Thành phố Đà Nẵng (Kinh tuyến 107°45′)</option>
-                                <option value="Thành phố Hà Nội">Thành phố Hà Nội (Kinh tuyến 105°00′)</option>
-                                <option value="Thành phố Hải Phòng">Thành phố Hải Phòng (Kinh tuyến 105°45′)</option>
-                                <option value="Thành phố Hồ Chí Minh">Thành phố Hồ Chí Minh (Kinh tuyến 105°45′)</option>
-                                <option value="Thành phố Huế">Thành phố Huế (Kinh tuyến 107°00′)</option>
-                                <option value="Tuyên Quang">Tuyên Quang (Kinh tuyến 106°00′)</option>
-                                <option value="Vĩnh Long">Vĩnh Long (Kinh tuyến 105°30′)</option>
-                            </select>
-                            <p class="config-desc">Lọc địa điểm nằm đúng trong phạm vi Tỉnh/Thành phố</p>
+                                <option value="An Giang">An Giang</option>
+                                <option value="Bắc Ninh">Bắc Ninh</option>
+                                <option value="Cà Mau">Cà Mau</option>
+                                <option value="Cao Bằng">Cao Bằng</option>
+                                <option value="Đắc Lắk">Đắc Lắk</option>
+                                <option value="Điện Biên">Điện Biên</option>
+                                <option value="Đồng Nai">Đồng Nai</option>
+                                <option value="Đồng Tháp">Đồng Tháp</option>
+                                <option value="Gia Lai">Gia Lai</option>
+                                <option value="Hà Tĩnh">Hà Tĩnh</option>
+                                <option value="Hưng Yên">Hưng Yên</option>
+                                <option value="Khánh Hòa">Khánh Hòa</option>
+                                <option value="Lai Châu">Lai Châu</option>
+                                <option value="Lạng Sơn">Lạng Sơn</option>
+                                <option value="Lào Cai">Lào Cai</option>
+                                <option value="Lâm Đồng">Lâm Đồng</option>
+                                <option value="Nghệ An">Nghệ An</option>
+                                <option value="Ninh Bình">Ninh Bình</option>
+                                <option value="Phú Thọ">Phú Thọ</option>
+                                <option value="Quảng Ngãi">Quảng Ngãi</option>
+                                <option value="Quảng Ninh">Quảng Ninh</option>
+                                <option value="Quảng Trị">Quảng Trị</option>
+                                <option value="Sơn La">Sơn La</option>
+                                <option value="Tây Ninh">Tây Ninh</option>
+                                <option value="Thái Nguyên">Thái Nguyên</option>
+                                <option value="Thanh Hóa">Thanh Hóa</option>
+                                <option value="Thành phố Cần Thơ">Thành phố Cần Thơ</option>
+                                <option value="Thành phố Đà Nẵng">Thành phố Đà Nẵng</option>
+                                <option value="Thành phố Hà Nội">Thành phố Hà Nội</option>
+                                <option value="Thành phố Hải Phòng">Thành phố Hải Phòng</option>
+                                <option value="Thành phố Hồ Chí Minh">Thành phố Hồ Chí Minh</option>
+                                <option value="Thành phố Huế">Thành phố Huế</option>
+                                <option value="Tuyên Quang">Tuyên Quang</option>
+                                <option value="Vĩnh Long">Vĩnh Long</option>
+                            </datalist>
+                            <p class="config-desc">Gõ và tìm kiếm trực tiếp ngay trong ô nhập (34 Tỉnh/Thành phố)</p>
+                        </div>
+
+                        <div class="config-card">
+                            <label class="config-label"><i class="fa-solid fa-map-location-dot"></i> Giới hạn Tỉnh / Thành phố (63 tỉnh/thành cũ)</label>
+                            <input type="text" id="cfg-target-province-63" list="list-prov-63" placeholder="🔍 Gõ tìm trực tiếp hoặc chọn Tỉnh/Thành 63..." style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #3b82f6; background-color: var(--bg-card-input, #1e293b); color: #f8fafc; font-size: 0.95rem; outline: none;" autocomplete="off">
+                            <datalist id="list-prov-63">
+                                <option value="none">-- Bỏ chọn / Sử dụng danh sách 34 tỉnh bên trên --</option>
+                                <option value="Hạ Long">Hạ Long</option>
+                                <option value="Lai Châu">Lai Châu</option>
+                                <option value="Điện Biên">Điện Biên</option>
+                                <option value="Sơn La">Sơn La</option>
+                                <option value="Lào Cai">Lào Cai</option>
+                                <option value="Yên Bái">Yên Bái</option>
+                                <option value="Hà Giang">Hà Giang</option>
+                                <option value="Tuyên Quang">Tuyên Quang</option>
+                                <option value="Phú Thọ">Phú Thọ</option>
+                                <option value="Vĩnh Phúc">Vĩnh Phúc</option>
+                                <option value="Cao Bằng">Cao Bằng</option>
+                                <option value="Lạng Sơn">Lạng Sơn</option>
+                                <option value="Bắc Kạn">Bắc Kạn</option>
+                                <option value="Thái Nguyên">Thái Nguyên</option>
+                                <option value="Bắc Giang">Bắc Giang</option>
+                                <option value="Bắc Ninh">Bắc Ninh</option>
+                                <option value="Quảng Ninh">Quảng Ninh</option>
+                                <option value="TP. Hải Phòng">TP. Hải Phòng</option>
+                                <option value="Hải Dương">Hải Dương</option>
+                                <option value="Hưng Yên">Hưng Yên</option>
+                                <option value="Hanoi">Hà Nội</option>
+                                <option value="Hoà Bình">Hoà Bình</option>
+                                <option value="Hà Nam">Hà Nam</option>
+                                <option value="Nam Định">Nam Định</option>
+                                <option value="Thái Bình">Thái Bình</option>
+                                <option value="Ninh Bình">Ninh Bình</option>
+                                <option value="Thanh Hoá">Thanh Hoá</option>
+                                <option value="Nghệ An">Nghệ An</option>
+                                <option value="Hà Tĩnh">Hà Tĩnh</option>
+                                <option value="Quảng Bình">Quảng Bình</option>
+                                <option value="Quảng Trị">Quảng Trị</option>
+                                <option value="Thừa Thiên – Huế">Thừa Thiên – Huế</option>
+                                <option value="TP. Đà Nẵng">TP. Đà Nẵng</option>
+                                <option value="Quảng Nam">Quảng Nam</option>
+                                <option value="Quảng Ngãi">Quảng Ngãi</option>
+                                <option value="Bình Định">Bình Định</option>
+                                <option value="Kon Tum">Kon Tum</option>
+                                <option value="Gia Lai">Gia Lai</option>
+                                <option value="Đắk Lắk">Đắk Lắk</option>
+                                <option value="Đắc Nông">Đắc Nông</option>
+                                <option value="Phú Yên">Phú Yên</option>
+                                <option value="Khánh Hoà">Khánh Hoà</option>
+                                <option value="Ninh Thuận">Ninh Thuận</option>
+                                <option value="Bình Thuận">Bình Thuận</option>
+                                <option value="Lâm Đồng">Lâm Đồng</option>
+                                <option value="Bình Dương">Bình Dương</option>
+                                <option value="Bình Phước">Bình Phước</option>
+                                <option value="Đồng Nai">Đồng Nai</option>
+                                <option value="Bà Rịa – Vũng Tàu">Bà Rịa – Vũng Tàu</option>
+                                <option value="Tây Ninh">Tây Ninh</option>
+                                <option value="Long An">Long An</option>
+                                <option value="Tiền Giang">Tiền Giang</option>
+                                <option value="Bến Tre">Bến Tre</option>
+                                <option value="Đồng Tháp">Đồng Tháp</option>
+                                <option value="Vĩnh Long">Vĩnh Long</option>
+                                <option value="Trà Vinh">Trà Vinh</option>
+                                <option value="An Giang">An Giang</option>
+                                <option value="Kiên Giang">Kiên Giang</option>
+                                <option value="TP. Cần Thơ">TP. Cần Thơ</option>
+                                <option value="Hậu Giang">Hậu Giang</option>
+                                <option value="Sóc Trăng">Sóc Trăng</option>
+                                <option value="Bạc Liêu">Bạc Liêu</option>
+                                <option value="Cà Mau">Cà Mau</option>
+                                <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                            </datalist>
+                            <p class="config-desc">Gõ và tìm kiếm trực tiếp ngay trong ô nhập (63 Tỉnh/Thành phố cũ)</p>
                         </div>
                     
 
@@ -670,6 +745,6 @@
     <!-- TOAST NOTIFICATION CONTAINER -->
     <div id="toast-container" class="toast-container"></div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=1.0.6"></script>
 </body>
 </html>

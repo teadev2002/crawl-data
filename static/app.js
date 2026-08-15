@@ -437,6 +437,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // MUTUAL EXCLUSION AUTO-DISABLE DÙNG CHO 34 VÀ 63 TỈNH THÀNH (DATALIST COMBOBOX INPUT)
+    const prov34El = document.getElementById('cfg-target-province');
+    const prov63El = document.getElementById('cfg-target-province-63');
+
+    function updateProvinceSelectionMode() {
+        if (!prov34El || !prov63El) return;
+
+        const val34 = (prov34El.value || '').trim();
+        const val63 = (prov63El.value || '').trim();
+
+        if (val34 !== '' && val34 !== 'none') {
+            prov63El.disabled = true;
+            prov63El.style.opacity = '0.4';
+            prov63El.style.cursor = 'not-allowed';
+        } else {
+            prov63El.disabled = false;
+            prov63El.style.opacity = '1';
+            prov63El.style.cursor = 'text';
+        }
+
+        if (val63 !== '' && val63 !== 'none') {
+            prov34El.disabled = true;
+            prov34El.style.opacity = '0.4';
+            prov34El.style.cursor = 'not-allowed';
+        } else {
+            prov34El.disabled = false;
+            prov34El.style.opacity = '1';
+            prov34El.style.cursor = 'text';
+        }
+    }
+
+    if (prov34El && prov63El) {
+        ['input', 'change'].forEach(evt => {
+            prov34El.addEventListener(evt, () => {
+                if (prov34El.value.trim() !== '' && prov34El.value.trim() !== 'none') {
+                    prov63El.value = '';
+                }
+                updateProvinceSelectionMode();
+            });
+
+            prov63El.addEventListener(evt, () => {
+                if (prov63El.value.trim() !== '' && prov63El.value.trim() !== 'none') {
+                    prov34El.value = '';
+                }
+                updateProvinceSelectionMode();
+            });
+        });
+    }
+
     // CONFIG MANAGEMENT
     async function loadConfig() {
         try {
@@ -474,7 +523,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (captchaSoundEl) captchaSoundEl.checked = !!cfg.capcha_sound;
             
             const targetProvinceEl = document.getElementById('cfg-target-province');
-            if (targetProvinceEl && cfg.target_province) targetProvinceEl.value = cfg.target_province;
+            const targetProvince63El = document.getElementById('cfg-target-province-63');
+            const list63El = document.getElementById('list-prov-63');
+
+            if (cfg.target_province) {
+                let foundIn63 = false;
+                if (list63El) {
+                    for (let opt of list63El.options) {
+                        if (opt.value === cfg.target_province && opt.value !== 'none') {
+                            foundIn63 = true;
+                            break;
+                        }
+                    }
+                }
+                if (foundIn63 && targetProvince63El) {
+                    targetProvince63El.value = cfg.target_province;
+                    if (targetProvinceEl) targetProvinceEl.value = '';
+                } else if (targetProvinceEl) {
+                    targetProvinceEl.value = cfg.target_province;
+                    if (targetProvince63El) targetProvince63El.value = '';
+                }
+                updateProvinceSelectionMode();
+            }
 
             const targetUrlEl = document.getElementById('cfg-target-url');
             if (targetUrlEl && cfg.target_url) targetUrlEl.value = cfg.target_url;
@@ -534,8 +604,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxResultsEl = document.getElementById('cfg-max-results');
         const captchaSoundEl = document.getElementById('cfg-captcha-sound');
         const targetProvinceEl = document.getElementById('cfg-target-province');
+        const targetProvince63El = document.getElementById('cfg-target-province-63');
         const targetUrlEl = document.getElementById('cfg-target-url');
         const newMaxResults = maxResultsEl ? (parseInt(maxResultsEl.value) || 50) : 50;
+
+        let selectedProvince = 'all';
+        if (targetProvinceEl && targetProvinceEl.value !== 'none' && !targetProvinceEl.disabled) {
+            selectedProvince = targetProvinceEl.value;
+        } else if (targetProvince63El && targetProvince63El.value !== 'none' && !targetProvince63El.disabled) {
+            selectedProvince = targetProvince63El.value;
+        }
 
         const payload = {
             search_queries: queries,
@@ -547,7 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
             findAll: chkFindAll ? chkFindAll.checked : true,
             findNext: chkFindNext ? chkFindNext.checked : false,
             target_service: selectedService,
-            target_province: targetProvinceEl ? targetProvinceEl.value : 'all'
+            target_province: selectedProvince
         };
 
         try {
