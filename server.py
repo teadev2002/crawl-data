@@ -294,6 +294,13 @@ async def start_email_dual():
     threading.Thread(target=run_command_stream, args=(["email_harvester.py", "--mode=bottom"], "EMAIL_BOTTOM", loop), daemon=True).start()
     return {"status": "success", "message": "Đã kích hoạt Quét Email song song 2 luồng (TOP & BOTTOM)!"}
 
+@app.post("/api/tasks/start/phone_dual")
+async def start_phone_dual():
+    loop = asyncio.get_event_loop()
+    threading.Thread(target=run_command_stream, args=(["phone_harvester.py", "--mode=top"], "PHONE_TOP", loop), daemon=True).start()
+    threading.Thread(target=run_command_stream, args=(["phone_harvester.py", "--mode=bottom"], "PHONE_BOTTOM", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Cào & Bổ Sung SĐT song song 2 luồng Chromium (TOP & BOTTOM)!"}
+
 @app.post("/api/tasks/start/cat_repair")
 async def start_cat_repair():
     loop = asyncio.get_event_loop()
@@ -307,39 +314,7 @@ async def start_info_repair():
     threading.Thread(target=run_command_stream, args=(["info_repairer.py"], "INFO_REPAIR", loop), daemon=True).start()
     return {"status": "success", "message": "Đã kích hoạt Sửa dữ liệu N/A!"}
 
-@app.post("/api/tasks/start/star_2way")
-async def start_star_2way():
-    loop = asyncio.get_event_loop()
-    def launch_staggered():
-        for m, tag in [("top", "STAR_P1"), ("bottom", "STAR_P2")]:
-            threading.Thread(target=run_command_stream, args=(["star_harvester.py", f"--mode={m}"], tag, loop), daemon=True).start()
-            time.sleep(0.8)
-    threading.Thread(target=launch_staggered, daemon=True).start()
-    return {"status": "success", "message": "Đã kích hoạt Tìm Số Sao song song 2 luồng!"}
 
-@app.post("/api/tasks/start/star_3way")
-async def start_star_3way():
-    loop = asyncio.get_event_loop()
-    def launch_staggered():
-        for m, tag in [("3way_p1", "STAR_P1"), ("3way_p2", "STAR_P2"), ("3way_p3", "STAR_P3")]:
-            threading.Thread(target=run_command_stream, args=(["star_harvester.py", f"--mode={m}"], tag, loop), daemon=True).start()
-            time.sleep(0.8)
-    threading.Thread(target=launch_staggered, daemon=True).start()
-    return {"status": "success", "message": "Đã kích hoạt Tìm Số Sao song song 3 luồng!"}
-
-@app.post("/api/tasks/start/star_4way")
-async def start_star_4way():
-    loop = asyncio.get_event_loop()
-    def launch_staggered():
-        for m, tag in [("4way_p1", "STAR_P1"), ("4way_p2", "STAR_P2"), ("4way_p3", "STAR_P3"), ("4way_p4", "STAR_P4")]:
-            threading.Thread(target=run_command_stream, args=(["star_harvester.py", f"--mode={m}"], tag, loop), daemon=True).start()
-            time.sleep(0.8)
-    threading.Thread(target=launch_staggered, daemon=True).start()
-    return {"status": "success", "message": "Đã kích hoạt Tìm Số Sao song song 4 luồng!"}
-
-@app.post("/api/tasks/start/star_harvester")
-async def start_star_harvester():
-    return await start_star_3way()
 
 @app.post("/api/tasks/start/mismatch_repair")
 async def start_mismatch_repair():

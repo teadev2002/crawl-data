@@ -68,8 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (barEl) barEl.style.width = `${percent}%`;
     }
 
-    let progressTotals = { map: 100, email: 100, cat: 100, info: 10, star: 50 };
-    let progressCurrents = { map: 0, email: 0, cat: 0, info: 0, star: 0 };
+    let progressTotals = { map: 100, email: 100, phone: 100, cat: 100, info: 10, star: 50 };
+    let progressCurrents = { map: 0, email: 0, phone: 0, cat: 0, info: 0, star: 0 };
     let mapActiveThreads = new Set();
 
     function parseLogProgress(msg) {
@@ -107,6 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (msg.includes('Info_Repair') || msg.includes('info_repairer') || msg.includes("dính lỗi 'N/A'")) {
                 setToolFile('info', activeFile);
                 updateToolStatus('info', 'running', 'Đang sửa');
+            } else if (msg.includes('PHONE') || msg.includes('phone_harvester') || msg.includes('PHONE_HARVEST')) {
+                setToolFile('phone', activeFile);
+                updateToolStatus('phone', 'running', 'Đang quét SĐT');
             } else if (msg.includes('EMAIL') || msg.includes('email_harvester') || msg.includes('thiếu email')) {
                 setToolFile('email', activeFile);
                 updateToolStatus('email', 'running', 'Đang quét');
@@ -715,6 +718,16 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerTask('start/email_dual');
     });
 
+    const btnStartPhone = document.getElementById('btn-start-phone-dual');
+    if (btnStartPhone) {
+        btnStartPhone.addEventListener('click', () => {
+            const curFile = getCurrentOutputFile();
+            setToolFile('phone', curFile);
+            updateToolStatus('phone', 'running', 'Đang quét SĐT');
+            triggerTask('start/phone_dual');
+        });
+    }
+
     document.getElementById('btn-start-cat-repair').addEventListener('click', () => {
         const curFile = getCurrentOutputFile();
         setToolFile('cat', curFile);
@@ -729,36 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerTask('start/info_repair');
     });
 
-    // Cấu hình lựa chọn Radio số luồng cào Star Harvester (2, 3, 4 luồng)
-    const starThreadRadios = document.querySelectorAll('input[name="star-thread-count"]');
-    const btnStartStar = document.getElementById('btn-start-star-action') || document.getElementById('btn-start-star-harvester');
-    
-    function getSelectedStarThreads() {
-        let val = '3';
-        starThreadRadios.forEach(radio => {
-            if (radio.checked) val = radio.value;
-        });
-        return val;
-    }
 
-    starThreadRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            const num = getSelectedStarThreads();
-            if (btnStartStar) {
-                btnStartStar.innerHTML = `<i class="fa-solid fa-star"></i> Chạy ${num} Luồng (Booking & Agoda)`;
-            }
-        });
-    });
-
-    if (btnStartStar) {
-        btnStartStar.addEventListener('click', () => {
-            const curFile = getCurrentOutputFile();
-            setToolFile('star', curFile);
-            updateToolStatus('star', 'running', 'Đang tìm sao');
-            const numThreads = getSelectedStarThreads();
-            triggerTask(`start/star_${numThreads}way`);
-        });
-    }
 
     const btnStartMismatch = document.getElementById('btn-start-mismatch-action');
     if (btnStartMismatch) {

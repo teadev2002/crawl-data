@@ -188,6 +188,37 @@
                             </div>
                         </div>
 
+                        <!-- Tool 2.5: Phone Harvester -->
+                        <div class="action-card" id="card-phone-harvester">
+                            <div class="action-header">
+                                <div class="action-title">
+                                    <i class="fa-solid fa-phone" style="color: #10b981;"></i>
+                                    <div>
+                                        <h3>Cào & Bổ Sung SĐT</h3>
+                                        <p>Quét & Ghép SĐT mới (2 Luồng Chromium)</p>
+                                    </div>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-phone-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                    <span class="file-name" id="file-output-phone">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-phone">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-phone">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill" id="prog-bar-phone" style="width: 0%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
+                                </div>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-success" id="btn-start-phone-dual" style="background-color: #10b981; border-color: #059669;">
+                                    <i class="fa-solid fa-phone"></i> 🚀 Quét & Bổ Sung SĐT (2 Luồng)
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Tool 3: Category Repairer -->
                         <div class="action-card" id="card-category-repairer">
                             <div class="action-header">
@@ -258,51 +289,7 @@
                             </div>
                         </div>
 
-                        <!-- Tool 5: Star Harvester (Booking & Agoda) -->
-                        <div class="action-card" id="card-star-harvester">
-                            <div class="action-header">
-                                <div class="action-title">
-                                    <i class="fa-solid fa-star" style="color: #f59e0b;"></i>
-                                    <div>
-                                        <strong>(Thử nghiệm)</strong><h3>Tìm số sao Booking & Agoda </h3>
-                                        <p>Tra cứu số sao (1 -> 5 sao)</p>
-                                    </div>
-                                </div>
-                                <span class="tool-status-badge idle" id="badge-star-status">Sẵn sàng</span>
-                            </div>
-                            <div class="progress-info-box">
-                                <div class="file-output-row">
-                                    <span class="file-name" id="file-output-star">Chưa chạy</span>
-                                </div>
-                                <div class="progress-stats-row">
-                                    <span class="progress-text" id="prog-text-star">0 / 0 bản ghi</span>
-                                    <span class="progress-percent" id="prog-percent-star">0%</span>
-                                </div>
-                                <div class="progress-bar-track">
-                                    <div class="progress-bar-fill" id="prog-bar-star" style="width: 0%; background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div>
-                                </div>
-                            </div>
-                            <div class="thread-select-box" style="margin-bottom: 12px; display: flex; align-items: center; gap: 12px; font-size: 0.88rem; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px;">
-                               
-                                <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                                    <input type="radio" name="star-thread-count" value="2"> 2 Luồng
-                                </label>
-                                <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                                    <input type="radio" name="star-thread-count" value="3" checked> 3 Luồng
-                                </label>
-                                <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                                    <input type="radio" name="star-thread-count" value="4"> 4 Luồng
-                                </label>
-                            </div>
-                            <div class="action-controls">
-                                <button class="btn btn-warning" id="btn-start-star-action" style="color: #0f172a; font-weight: 600; background-color: #f59e0b; border-color: #d97706;">
-                                    <i class="fa-solid fa-star"></i> Chạy 3 Luồng (Booking & Agoda)
-                                </button>
-                                <button class="btn btn-danger hidden" id="btn-stop-star">
-                                    <i class="fa-solid fa-square"></i> Dừng tìm số sao
-                                </button>
-                            </div>
-                        </div>
+
 
                         <!-- CARD 6: MISMATCH REPAIRER -->
                         <div class="action-card">
@@ -609,7 +596,8 @@
                                 <option value="Bình Dương">Bình Dương</option>
                                 <option value="Bình Phước">Bình Phước</option>
                                 <option value="Đồng Nai">Đồng Nai</option>
-                                <option value="Bà Rịa – Vũng Tàu">Bà Rịa – Vũng Tàu</option>
+                                <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
+                                <option value="Long Hải">Long Hải</option>
                                 <option value="Tây Ninh">Tây Ninh</option>
                                 <option value="Long An">Long An</option>
                                 <option value="Tiền Giang">Tiền Giang</option>
@@ -745,6 +733,6 @@
     <!-- TOAST NOTIFICATION CONTAINER -->
     <div id="toast-container" class="toast-container"></div>
 
-    <script src="/static/app.js?v=1.0.6"></script>
+    <script src="/static/app.js?v=1.0.8"></script>
 </body>
 </html>

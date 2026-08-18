@@ -257,6 +257,31 @@ def trigger_load_more_click(page):
     except Exception:
         return False
 
+def is_card_outside_region(page, card) -> bool:
+    """
+    Kiểm tra xem thẻ property card hiện tại có nằm sau banner thông báo
+    "Chỗ nghỉ xung quanh... nằm ngoài..." (class b8f2b74cef / edd678b754) hay không.
+    """
+    try:
+        is_outside = page.evaluate(r"""
+            (cardEl) => {
+                const banners = document.querySelectorAll('.b8f2b74cef, .edd678b754, [class*="b8f2b74cef"], [class*="edd678b754"], [data-testid="search-results-banner"]');
+                for (const banner of banners) {
+                    const text = (banner.innerText || banner.textContent || '').toLowerCase();
+                    if (text.includes('xung quanh') || text.includes('nằm ngoài') || text.includes('outside') || text.includes('properties around')) {
+                        const pos = banner.compareDocumentPosition(cardEl);
+                        if ((pos & Node.DOCUMENT_POSITION_FOLLOWING) !== 0) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+        """, card.element_handle())
+        return bool(is_outside)
+    except Exception:
+        return False
+
 def format_standard_record(r, default_stt=1):
     formatted = {}
     for key in STANDARD_KEYS:
@@ -495,6 +520,7 @@ def run_booking_harvester(input_destination=None, output_file=None):
                 star_results_count = 0
                 last_milestone = 0
                 last_new_record_time = time.time()
+                hit_outside_banner = False
 
                 while star_results_count < expected_count:
                     close_popups(page)
@@ -503,6 +529,12 @@ def run_booking_harvester(input_destination=None, output_file=None):
 
                     for card in cards:
                         if star_results_count >= expected_count:
+                            break
+
+                        # Kiểm tra nếu thẻ card hiện tại xuất hiện phía sau banner phân cách "Chỗ nghỉ xung quanh / nằm ngoài..."
+                        if is_card_outside_region(page, card):
+                            print(f"[{mode_tag}] [🛑 PHÁT HIỆN THÔNG BÁO NẰM NGOÀI KHU VỰC]: Đã chạm tới danh sách 'Chỗ nghỉ xung quanh / nằm ngoài'! Dừng cào hạng {star} sao ngay lập tức.")
+                            hit_outside_banner = True
                             break
 
                         try:
@@ -566,7 +598,7 @@ def run_booking_harvester(input_destination=None, output_file=None):
                         except Exception:
                             continue
 
-                    if star_results_count >= expected_count:
+                    if hit_outside_banner or star_results_count >= expected_count:
                         break
 
                     # KIỂM TRA THỜI GIAN 30 GIÂY KHÔNG CÓ BẢN GHI MỚI ➔ CHUYỂN FILTER
