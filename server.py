@@ -331,8 +331,9 @@ async def start_booking_harvester():
 @app.post("/api/tasks/start/ai_checking")
 async def start_ai_checking():
     loop = asyncio.get_event_loop()
-    threading.Thread(target=run_command_stream, args=(["ai_checking.py"], "AI_CHECKING", loop), daemon=True).start()
-    return {"status": "success", "message": "Đã kích hoạt AI Checking (Google Gemini API)!"}
+    threading.Thread(target=run_command_stream, args=(["ai_checking.py", "--mode=top"], "AICHECK_TOP", loop), daemon=True).start()
+    threading.Thread(target=run_command_stream, args=(["ai_checking.py", "--mode=bottom"], "AICHECK_BOTTOM", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt AI Checking song song 2 luồng Chromium (TOP & BOTTOM)!"}
 
 @app.post("/api/tasks/stop")
 async def stop_tasks():

@@ -99,17 +99,17 @@ def fix_vietnamese_abbreviations(text):
     
     t = text
     replacements = [
-        (r'\bTP\.?\s*HCM\b', 'Thành phố Hồ Chí Minh', re.IGNORECASE),
-        (r'\bTP\.?\s*Hà Nội\b', 'Thành phố Hà Nội', re.IGNORECASE),
-        (r'\bTP\.?\s*Đà Nẵng\b', 'Thành phố Đà Nẵng', re.IGNORECASE),
-        (r'\bTP\.?\s*Nha Trang\b', 'Thành phố Nha Trang', re.IGNORECASE),
-        (r'\bTP\.?\s*Cần Thơ\b', 'Thành phố Cần Thơ', re.IGNORECASE),
-        (r'\bTP\.?\s*([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Thành phố \1', 0),
-        (r'\bQ\.?\s*(\d+|[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Quận \1', 0),
-        (r'\bP\.?\s*(\d+|[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Phường \1', 0),
-        (r'\bTX\.?\s*([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Thị xã \1', 0),
-        (r'\bH\.?\s*([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Huyện \1', 0),
-        (r'\bĐ\.?\s*([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Đường \1', 0),
+        (r'\bTP\.\s*HCM\b', 'Thành phố Hồ Chí Minh', re.IGNORECASE),
+        (r'\bTP\.\s*Hà Nội\b', 'Thành phố Hà Nội', re.IGNORECASE),
+        (r'\bTP\.\s*Đà Nẵng\b', 'Thành phố Đà Nẵng', re.IGNORECASE),
+        (r'\bTP\.\s*Nha Trang\b', 'Thành phố Nha Trang', re.IGNORECASE),
+        (r'\bTP\.\s*Cần Thơ\b', 'Thành phố Cần Thơ', re.IGNORECASE),
+        (r'\bTP\.\s+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Thành phố \1', 0),
+        (r'\bQ\.\s+([0-9A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Quận \1', 0),
+        (r'\bP\.\s+([0-9A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Phường \1', 0),
+        (r'\bTX\.\s+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Thị xã \1', 0),
+        (r'\bH\.\s+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Huyện \1', 0),
+        (r'\bĐ\.\s+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĐa-zàáâãèéêìíòóôõùúýđ]+)', r'Đường \1', 0),
         (r'\bKS\b', 'Khách sạn', re.IGNORECASE),
         (r'\bNhà Nghỉ\b', 'Nhà nghỉ', re.IGNORECASE),
     ]
@@ -322,22 +322,58 @@ def evaluate_match_score_with_gemini(client, booking_title, booking_address, map
     
     return calculate_title_similarity(clean_bt, clean_mt)
 
-def run_ai_checking(input_file=None):
+def safe_read_json(file_path, retries=15, delay=0.15):
+    for _ in range(retries):
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    if content:
+                        try:
+                            data = json.loads(content)
+                            return data
+                        except json.JSONDecodeError:
+                            pass
+        except (PermissionError, OSError):
+            pass
+        time.sleep(delay)
+    return None
+
+def run_ai_checking(input_file=None, mode="full"):
     if not input_file:
         input_file = TARGET_JSON_FILE
 
-    mode_tag = "AI_CHECKING"
-    print(f"[{mode_tag}] Đã khởi chạy Chức Năng 8: AI Checking (Google Gemini Chat Box)...")
+    mode_tag = f"AI_CHECK_{mode.upper()}"
+    print(f"[{mode_tag}] Đã khởi chạy Chức Năng 8: AI Checking (2 Luồng Chromium Ảo)... Mode: {mode.upper()}")
 
     if not os.path.exists(input_file):
         print(f"[{mode_tag}] Lỗi: Không tìm thấy file dữ liệu '{input_file}'!")
         return
 
-    with open(input_file, 'r', encoding='utf-8') as f:
-        records = json.load(f)
+    records = safe_read_json(input_file)
 
-    total_records = len(records)
-    print(f"[{mode_tag}] Đã đọc file dữ liệu '{input_file}' ({total_records} bản ghi).")
+    if records is None or not isinstance(records, list):
+        print(f"[{mode_tag}] Lỗi: Không thể đọc dữ liệu danh sách từ file '{input_file}'.")
+        return
+
+    formatted_records = [format_standard_record(r, idx + 1) for idx, r in enumerate(records) if isinstance(r, dict)]
+    safe_save_record(input_file, formatted_records[0]) if formatted_records else None
+    records = formatted_records
+
+    total_need_process = len(records)
+    midpoint = total_need_process // 2 if total_need_process > 1 else 1
+
+    to_process_indices = list(enumerate(records))
+
+    if mode == "bottom":
+        target_items = list(reversed(to_process_indices[midpoint:])) if total_need_process > 1 else to_process_indices
+        print(f"[*] [{mode_tag}] LUỒNG BOTTOM (CHROMIUM ẢO - QUÉT TỪ DƯỚI LÊN). Quét {len(target_items)} bản ghi...")
+    elif mode == "top":
+        target_items = to_process_indices[:midpoint] if total_need_process > 1 else to_process_indices
+        print(f"[*] [{mode_tag}] LUỒNG TOP (CHROMIUM ẢO - QUÉT TỪ TRÊN XUỐNG). Quét {len(target_items)} bản ghi...")
+    else:
+        target_items = to_process_indices
+        print(f"[*] [{mode_tag}] ĐƠN LUỒNG (CHROMIUM ẢO). Quét {len(target_items)} bản ghi...")
 
     client, api_key = get_gemini_client()
     if client:
@@ -345,59 +381,54 @@ def run_ai_checking(input_file=None):
     else:
         print(f"[{mode_tag}] [!] Chưa nhận diện API Key trong config.json, đang chạy chế độ fallback.")
 
-    worker_profile_dir = os.path.join(os.getcwd(), f"browser_profile_aicheck_{os.getpid()}")
-    if os.path.exists(worker_profile_dir):
-        try:
-            shutil.rmtree(worker_profile_dir, ignore_errors=True)
-        except Exception:
-            pass
-
     with sync_playwright() as p:
-        context = p.chromium.launch_persistent_context(
-            worker_profile_dir,
-            headless=CONFIG.get("headless", False),
-            slow_mo=50,
+        print(f"[{mode_tag}] Đang mở Trình duyệt ảo Chromium...")
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context(
             locale="vi-VN",
             viewport={"width": 1366, "height": 768},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            args=["--disable-blink-features=AutomationControlled", "--disable-gpu", "--no-sandbox"]
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
         page = context.pages[0] if context.pages else context.new_page()
 
         matched_count = 0
 
-        for idx, r in enumerate(records):
+        for index_in_file, r in target_items:
             if not isinstance(r, dict):
                 continue
 
             title = r.get("title", "")
             address = r.get("address", "")
-            stt = r.get("stt", idx + 1)
+            stt = r.get("stt", index_in_file + 1)
             original_booking_url = r.get("url", "")
             original_source = r.get("source", f"Booking: {original_booking_url}")
 
             if not title:
-                print(f"[{mode_tag}] [{idx+1}/{total_records}] Bỏ qua STT {stt} do không có Tên cơ sở.")
+                print(f"[{mode_tag}] [{index_in_file+1}/{total_need_process}] Bỏ qua STT {stt} do không có Tên cơ sở.")
                 continue
 
-            # BƯỚC 1: Tạo Prompt dạng Chatbox
+            # BƯỚC 1: Tạo từ khóa tìm kiếm chuẩn: Title + target_province (từ config.json)
             clean_t = fix_vietnamese_abbreviations(title)
-            clean_a = fix_vietnamese_abbreviations(address)
-            chat_user_prompt = f"{clean_t} {clean_a} map".strip()
+            target_prov = CONFIG.get("target_province", "")
+            if target_prov and target_prov.lower() != "none":
+                chat_user_prompt = f"{clean_t} {target_prov}".strip()
+            else:
+                clean_a = fix_vietnamese_abbreviations(address)
+                chat_user_prompt = f"{clean_t} {clean_a}".strip()
 
             print(f"\n==================================================")
-            print(f"💬 [USER CHATBOX]: \"{chat_user_prompt}\"")
+            print(f"💬 [{mode_tag}] [STT {stt}]: \"{chat_user_prompt}\"")
             print(f"==================================================")
 
-            # BƯỚC 2: Gemini AI phản hồi Chatbox theo chuẩn hình ảnh
+            # BƯỚC 2: Gemini AI phản hồi Chatbox
             ai_response = query_gemini_chatbox(client, chat_user_prompt)
 
             if ai_response:
                 print(f"🤖 [GEMINI AI PHẢN HỒI]:\n{ai_response}")
             else:
-                print(f"🤖 [GEMINI AI PHẢN HỒI]: (Không tạo được response từ Gemini API, đang sử dụng fallback Google Maps)")
+                print(f"🤖 [GEMINI AI PHẢN HỒI]: (Fallback Google Maps)")
 
-            # BƯỚC 3: Trích xuất Link URL Maps & SĐT từ câu trả lời của AI
+            # BƯỚC 3: Trích xuất sơ bộ
             ai_extracted = extract_map_url_and_info_from_ai_response(ai_response)
             target_map_url = ai_extracted["map_url"]
             extracted_phone = ai_extracted["phone"]
@@ -405,41 +436,44 @@ def run_ai_checking(input_file=None):
             maps_addr_from_ai = ai_extracted["address"]
             extracted_website = ""
 
-            # BƯỚC 4: Tìm kiếm trực tiếp trên Google Maps để quét danh sách & lớp xxVWCe
+            # BƯỚC 4: Tìm kiếm trực tiếp trên Google Maps & trích xuất href từ thẻ <a class="hfpxzc"> có <span class="xxVWCe">
             search_maps_page_url = f"https://www.google.com/maps/search/{quote_plus(chat_user_prompt)}"
             try:
                 page.goto(search_maps_page_url, wait_until='domcontentloaded', timeout=35000)
                 time.sleep(2.0)
 
-                # NẾU RƠI VÀO GIAO DIỆN DANH SÁCH (ROLE="FEED"), QUÉT QUA CÁC ITEM THẺ BÀI CLASS="xxVWCe"
-                feed_locator = page.locator('div[role="feed"]')
-                if feed_locator.count() > 0 or page.locator('.xxVWCe').count() > 0:
-                    title_nodes = page.locator('.xxVWCe, div.qBF1Pd, a[href*="/maps/place/"]').all()
-                    best_match_card = None
-                    best_match_score = 0
-                    best_card_title = ""
+                cards_locator = page.locator('a.hfpxzc').all()
+                best_match_url = None
+                best_match_score = 0
+                best_card_element = None
 
-                    for t_node in title_nodes:
+                if cards_locator:
+                    for a_card in cards_locator:
                         try:
-                            card_text = clean_text(t_node.inner_text())
-                            if not card_text: continue
+                            span_title_el = a_card.locator('.xxVWCe').first
+                            card_title = clean_text(span_title_el.inner_text()) if span_title_el.count() > 0 else ""
+                            if not card_title:
+                                card_title = clean_text(a_card.get_attribute('aria-label') or "")
                             
-                            sim_score = calculate_title_similarity(title, card_text)
-                            if sim_score >= 50 and sim_score > best_match_score:
-                                best_match_score = sim_score
-                                best_match_card = t_node
-                                best_card_title = card_text
+                            if card_title:
+                                sim_score = calculate_title_similarity(title, card_title)
+                                if sim_score >= 50 and sim_score > best_match_score:
+                                    best_match_score = sim_score
+                                    best_match_url = a_card.get_attribute('href')
+                                    best_card_element = a_card
                         except Exception:
                             continue
 
-                    if best_match_card and best_match_score >= 50:
-                        print(f"[{mode_tag}] [+] Đã tìm thấy Item trong danh sách khớp class '.xxVWCe': '{best_card_title}' (Tỷ lệ khớp tên: {best_match_score}%)")
-                        best_match_card.click()
+                if best_match_url and best_match_score >= 50:
+                    print(f"[{mode_tag}] [+] Đã trích xuất `href` từ thẻ `<a class=\"hfpxzc\">`: '{best_match_url[:65]}...' (Độ khớp: {best_match_score}%)")
+                    target_map_url = best_match_url
+                    if best_card_element:
+                        best_card_element.click()
                         time.sleep(2.0)
+                else:
+                    target_map_url = page.url
 
-                target_map_url = page.url
-
-                # Bóc tách Tên trên Google Maps
+                # Bóc tách Tên
                 h1_el = page.locator('h1.DUwfe, h1.fontHeadlineLarge').first
                 if h1_el.count() > 0:
                     maps_title_from_ai = clean_text(h1_el.inner_text())
@@ -462,11 +496,12 @@ def run_ai_checking(input_file=None):
             except Exception as crawl_err:
                 print(f"[{mode_tag}] [!] Lỗi cào Google Maps candidate: {crawl_err}")
 
-            # BƯỚC 5: Tự động truy cập vào Link URL Maps để thực hiện Checking độ trùng khớp thực tế
+            # BƯỚC 5: Tự động chuyển trang kiểm tra nếu có link place
             if target_map_url and "google.com/maps/place" in target_map_url:
                 try:
-                    page.goto(target_map_url, wait_until='domcontentloaded', timeout=30000)
-                    time.sleep(1.5)
+                    if page.url != target_map_url:
+                        page.goto(target_map_url, wait_until='domcontentloaded', timeout=30000)
+                        time.sleep(1.5)
 
                     h1_el = page.locator('h1.DUwfe, h1.fontHeadlineLarge').first
                     if h1_el.count() > 0:
@@ -497,19 +532,15 @@ def run_ai_checking(input_file=None):
                 matched_count += 1
                 print(f"[{mode_tag}] ✓ HAPPY CASE (>= 50%): Tìm thấy địa điểm trùng khớp trên Google Maps!")
 
-                # ĐỔI FIELD `url` THÀNH LINK URL MAP KHI HAPPY CASE
                 r["url"] = target_map_url
                 
-                # Bổ sung SĐT nếu có
                 if extracted_phone:
                     digits = re.sub(r'\D', '', extracted_phone)
                     r["phone"] = digits if len(digits) >= 9 else extracted_phone
 
-                # Bổ sung Website nếu có
                 if extracted_website:
                     r["website"] = extracted_website
 
-                # Bảo lưu link Booking gốc ở field source và totalScore = ""
                 r["source"] = original_source
                 r["totalScore"] = ""
 
@@ -523,24 +554,23 @@ def run_ai_checking(input_file=None):
                 r["source"] = original_source
                 r["totalScore"] = ""
 
-            pct = ((idx + 1) / total_records * 100)
-            print(f"[{mode_tag}] Tiến trình: {idx + 1} / {total_records} bản ghi ({pct:.1f}%)")
+            pct = ((index_in_file + 1) / total_need_process * 100)
+            print(f"[{mode_tag}] Tiến trình: {index_in_file + 1} / {total_need_process} bản ghi ({pct:.1f}%)")
 
         try:
-            context.close()
-        except Exception: pass
-        try:
-            if os.path.exists(worker_profile_dir):
-                shutil.rmtree(worker_profile_dir, ignore_errors=True)
+            browser.close()
         except Exception: pass
 
-    print(f"\n[{mode_tag}] HOÀN THÀNH AI CHECKING!")
-    print(f"[{mode_tag}] Số bản ghi đạt khớp >= 50% và được cập nhật link Google Maps: {matched_count}/{total_records}")
+    print(f"\n[{mode_tag}] HOÀN THÀNH AI CHECKING ({mode.upper()})!")
+    print(f"[{mode_tag}] Số bản ghi đạt khớp >= 50% và được cập nhật link Google Maps: {matched_count}/{len(target_items)}")
     print(f"[{mode_tag}] File '{input_file}' đã hoàn tất!")
 
 if __name__ == "__main__":
     out_file = CONFIG.get("output_file", "hotels.json")
+    run_mode = "full"
     for arg in sys.argv[1:]:
-        if arg.endswith(".json"):
+        if arg.startswith("--mode="):
+            run_mode = arg.split("=")[1]
+        elif arg.endswith(".json"):
             out_file = arg
-    run_ai_checking(out_file)
+    run_ai_checking(out_file, mode=run_mode)
