@@ -353,28 +353,27 @@ def safe_save_record(output_file, new_item):
 def extract_detail_page(page, url):
     """
     Stage 2 Detail Extractor (Playwright Chromium):
-    Truy cập trực tiếp vào từng URL khách sạn để lấy:
     1. Title: `class="ddb12f4f86 pp-header__title"`
-    2. CategoryName / Số sao: `<span data-testid="rating-stars" class="b5ab46c480 e5b0af413e">` (đếm `div.e03979cfad` hoặc đọc `aria-label`) -> "5-star hotel"
-    3. Address: `<div class="b99b6ef58f cb4b7a25d9 b06461926f">` hoặc từ JSON-LD schema
-    (Không lấy field điểm số totalScore)
+    2. Address: `<div class="b99b6ef58f cb4b7a25d9 b06461926f">` hoặc JSON-LD schema
+    3. Apartment Check: CHỈ khi thẻ <span class="bui-button__text"> có nội dung "Đặt căn hộ của bạn"
+       mới đánh dấu is_apartment = True. Nếu là "Đặt ngay" -> Giữ nguyên tiêu đề gốc.
     """
     try:
         page.goto(url, timeout=30000, wait_until="domcontentloaded")
-        time.sleep(1.2)
+        time.sleep(2.5)
         close_popups(page)
 
         return page.evaluate("""
             () => {
-                let res = { title: '', address: '' };
+                let res = { title: '', address: '', is_apartment: false };
 
-                // 2. Tên cơ sở (title) từ class="ddb12f4f86 pp-header__title"
+                // 1. Tên cơ sở (title) từ class="ddb12f4f86 pp-header__title"
                 const titleEl = document.querySelector('.ddb12f4f86, .pp-header__title, h2.pp-header__title, [data-testid="header-title"]');
                 if (titleEl) {
                     res.title = titleEl.innerText.replace(/[\\n\\r\\t]+/g, ' ').trim();
                 }
 
-                // 3. Địa chỉ (address) từ class="b99b6ef58f cb4b7a25d9 b06461926f" hoặc JSON-LD
+                // 2. Địa chỉ (address) từ JSON-LD schema
                 const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
                 for (const script of jsonLdScripts) {
                     try {
@@ -407,6 +406,17 @@ def extract_detail_page(page, url):
                             res.address = txt;
                             break;
                         }
+                    }
+                }
+
+                // 3. ĐỊNH VỊ CHÍNH XÁC NÚT: <span class="bui-button__text">Đặt căn hộ của bạn</span>
+                // Nếu gặp "Đặt ngay" -> is_apartment = false (Giữ nguyên tiêu đề gốc)
+                const buiSpans = Array.from(document.querySelectorAll('.bui-button__text, span.bui-button__text, #hcta, button, span, a, div'));
+                for (const sp of buiSpans) {
+                    const txt = (sp.innerText || sp.textContent || '').replace(/[\\n\\r\\t]+/g, ' ').replace(/\\s+/g, ' ').trim().toLowerCase();
+                    if (txt.includes('đặt căn hộ của bạn') || txt.includes('book your apartment')) {
+                        res.is_apartment = true;
+                        break;
                     }
                 }
 
@@ -543,6 +553,7 @@ def run_booking_harvester(input_destination=None, output_file=None):
                                 continue
                             title = clean_text(title_loc.inner_text())
 
+
                             link_loc = card.locator('a[data-testid="title-link"], a[href*="/hotel/"]').first
                             href = link_loc.get_attribute('href') if link_loc.count() > 0 else ""
                             if not href:
@@ -654,6 +665,12 @@ def run_booking_harvester(input_destination=None, output_file=None):
 
                         if details.get("address") and details["address"].strip():
                             record_item["address"] = details["address"].strip()
+
+                        # CHỈ gắn cờ hậu tố (#can-ho) khi extract_detail_page phát hiện nút "Đặt căn hộ của bạn"
+                        if details.get("is_apartment"):
+                            t_curr = record_item.get("title", "")
+                            if "(#can-ho)" not in t_curr:
+                                record_item["title"] = f"{t_curr} (#can-ho)".strip()
 
                         record_item["totalScore"] = ""  # Đảm bảo rỗng 100%
 

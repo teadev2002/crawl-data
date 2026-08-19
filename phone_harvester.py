@@ -456,6 +456,81 @@ def crawl_facebook_for_phone(page, fb_url, target_title: str = ""):
 
     return None, ""
 
+def crawl_trip_via_google_maps(page, maps_url):
+    """
+    Truy cập Google Maps place URL có sẵn trong bản ghi, tìm mục "Kết quả bổ sung trên web" (h2.QmVJeb),
+    nhấp vào liên kết Trip.com (span.QVR4f), và trích xuất SĐT từ class chuyên dụng của Trip.com:
+    .hotelContact_descriptionInfo-tel__ti6FG / .hotelContact_real-tel-text__3lcAp
+    """
+    if not maps_url or "google.com/maps" not in maps_url.lower():
+        return None, ""
+
+    print(f"  -> [Google Maps ➔ Trip.com] Đang truy cập Google Maps place: {maps_url[:65]}...")
+    try:
+        page.goto(maps_url, wait_until='domcontentloaded', timeout=20000)
+        time.sleep(2)
+
+        # 1. Tìm mục "Kết quả bổ sung trên web" và liên kết Trip.com
+        trip_link_loc = page.locator('a:has(span.QVR4f:has-text("Trip.com")), a[href*="trip.com"]:has-text("Trip.com"), a[href*="trip.com"]').first
+
+        trip_target_url = None
+        if trip_link_loc.count() > 0:
+            try:
+                trip_target_url = trip_link_loc.get_attribute('href')
+            except Exception:
+                pass
+
+        if not trip_target_url:
+            try:
+                page.evaluate("""
+                    () => {
+                        const sidePanel = document.querySelector('div[role="main"], div.m6QErf');
+                        if (sidePanel) sidePanel.scrollTop = sidePanel.scrollHeight;
+                    }
+                """)
+                time.sleep(1.5)
+                trip_link_loc = page.locator('a:has(span.QVR4f:has-text("Trip.com")), a[href*="trip.com"]').first
+                if trip_link_loc.count() > 0:
+                    trip_target_url = trip_link_loc.get_attribute('href')
+            except Exception:
+                pass
+
+        if trip_target_url:
+            print(f"    [✓] Đã tìm thấy liên kết Trip.com trong 'Kết quả bổ sung trên web': {trip_target_url[:65]}...")
+            page.goto(trip_target_url, wait_until='domcontentloaded', timeout=20000)
+            time.sleep(2.5)
+
+            # 2. Định vị SĐT trên trang chi tiết Trip.com
+            phone_text = page.evaluate(r"""
+                () => {
+                    const el = document.querySelector('.hotelContact_real-tel-text__3lcAp, .hotelContact_descriptionInfo-tel__ti6FG');
+                    if (el) return el.innerText || el.textContent || '';
+                    const telDivs = document.querySelectorAll('div[class*="hotelContact"], div[class*="real-tel"]');
+                    for (const d of telDivs) {
+                        const txt = d.innerText || d.textContent || '';
+                        if (/\d/.test(txt)) return txt;
+                    }
+                    return '';
+                }
+            """)
+
+            if phone_text:
+                valid_phones = extract_vietnam_phone_numbers(phone_text)
+                if valid_phones:
+                    print(f"    [✓] Đã cào thành công SĐT từ Trip.com: '{valid_phones[0]}'")
+                    return valid_phones[0], f"phone_trip: {trip_target_url}"
+            else:
+                body_text = page.locator('body').inner_text()
+                valid_phones = extract_vietnam_phone_numbers(body_text)
+                if valid_phones:
+                    print(f"    [✓] Đã cào SĐT từ trang Trip.com (body text): '{valid_phones[0]}'")
+                    return valid_phones[0], f"phone_trip: {trip_target_url}"
+
+    except Exception as e:
+        print(f"    [!] Lỗi khi cào Trip.com qua Google Maps: {e}")
+
+    return None, ""
+
 def search_bing_for_facebook(page, title, address):
     province = extract_province(address)
     query = f'{title} {province} facebook'.strip() if province else f'{title} facebook'
@@ -763,6 +838,9 @@ def harvest_phones(mode="top"):
             source_found = ""
             discovered_facebook = facebook
 
+            url = item.get("url", "")
+
+            # 1. Quét qua Facebook / Website chính nếu có
             if facebook and facebook.strip() != "":
                 phone_found, source_found = crawl_facebook_for_phone(page, facebook, target_title=title)
             elif website and website.strip() != "":
@@ -772,16 +850,20 @@ def harvest_phones(mode="top"):
                 else:
                     phone_found, source_found = crawl_website_for_phone(page, website)
 
+            # 2. (MỚI NÂNG CẤP) Quét gian hàng Trip.com qua Google Maps place URL có sẵn
+            if not phone_found and url and "google.com/maps" in url.lower():
+                phone_found, source_found = crawl_trip_via_google_maps(page, url)
+
+            # 3. Tìm Facebook qua Search Engines nếu chưa có Facebook
             if not phone_found and (not discovered_facebook or discovered_facebook.strip() == ""):
                 fb_url = search_google_for_facebook(page, title, address)
                 if fb_url:
                     discovered_facebook = fb_url
                     phone_found, source_found = crawl_facebook_for_phone(page, fb_url, target_title=title)
 
+            # 4. Tìm trực tiếp qua Google Search (AI Overview & Snippets)
             if not phone_found:
                 phone_found, source_found = search_google_for_phone(page, title, address)
-
-            url = item.get("url", "")
             if phone_found:
                 saved, flagged_count, total_recs, final_p = safe_save_phone(
                     target_file, stt, title, url, phone_found, source_found, discovered_facebook
