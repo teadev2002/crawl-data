@@ -68,8 +68,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (barEl) barEl.style.width = `${percent}%`;
     }
 
-    let progressTotals = { map: 100, email: 100, phone: 100, cat: 100, info: 10, star: 50 };
-    let progressCurrents = { map: 0, email: 0, phone: 0, cat: 0, info: 0, star: 0 };
+    let progressTotals = { map: 100, email: 100, phone: 100, cat: 100, info: 10, star: 50, aicheck: 100 };
+    let progressCurrents = { map: 0, email: 0, phone: 0, cat: 0, info: 0, star: 0, aicheck: 0 };
+    let threadProgress = { phone_top: 0, phone_bottom: 0, aicheck_top: 0, aicheck_bottom: 0 };
     let mapActiveThreads = new Set();
 
     function parseLogProgress(msg) {
@@ -166,6 +167,38 @@ document.addEventListener('DOMContentLoaded', () => {
             if (msg.includes('QUÉT EMAIL HOÀN TẤT!') || msg.includes('quét email hoàn thành')) {
                 updateToolProgress('email', progressTotals.email, progressTotals.email);
                 updateToolStatus('email', 'completed', 'Hoàn thành');
+            }
+        }
+
+        // 2.5 PHONE HARVESTER (CỘNG DỒN ĐƠN ĐIỆN 2 LUỒNG TOP & BOTTOM TRÁNH GIẬT TIẾN TRÌNH)
+        const isPhoneLog = msg.includes('PHONE') || msg.includes('phone_harvester') || msg.includes('PHONE_HARVEST');
+        if (isPhoneLog) {
+            const phoneTotalMatch = msg.match(/Tổng số bản ghi trong file:\s*(\d+)/i);
+            if (phoneTotalMatch) {
+                progressTotals.phone = parseInt(phoneTotalMatch[1]) || progressTotals.phone;
+                threadProgress.phone_top = 0;
+                threadProgress.phone_bottom = 0;
+                progressCurrents.phone = 0;
+                updateToolProgress('phone', 0, progressTotals.phone);
+                updateToolStatus('phone', 'running', 'Đang quét SĐT');
+            }
+
+            if (msg.includes('Hoàn thành 1 bản ghi') || msg.includes('Real-Time Save (SĐT mới)') || msg.includes('SĐT trùng hoặc không đổi') || msg.includes('Không tìm thấy SĐT mới')) {
+                if (msg.includes('[TOP]')) {
+                    threadProgress.phone_top += 1;
+                } else if (msg.includes('[BOTTOM]')) {
+                    threadProgress.phone_bottom += 1;
+                } else {
+                    threadProgress.phone_top += 1;
+                }
+                progressCurrents.phone = Math.min(progressTotals.phone, threadProgress.phone_top + threadProgress.phone_bottom);
+                updateToolProgress('phone', progressCurrents.phone, progressTotals.phone);
+                updateToolStatus('phone', 'running', 'Đang quét SĐT');
+            }
+
+            if (msg.includes('QUÉT SỐ ĐIỆN THOẠI HOÀN TẤT!') || msg.includes('quét sđt hoàn thành')) {
+                updateToolProgress('phone', progressTotals.phone, progressTotals.phone);
+                updateToolStatus('phone', 'completed', 'Hoàn thành');
             }
         }
 
@@ -269,17 +302,37 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 8. AI CHECKING
-        const isAiCheckLog = msg.includes('AI_CHECKING') || msg.includes('ai_checking') || msg.includes('AI Checking');
+        // 8. AI CHECKING (CỘNG DỒN ĐƠN ĐIỆN 2 LUỒNG TOP & BOTTOM TRÁNH GIẬT TIẾN TRÌNH)
+        const isAiCheckLog = msg.includes('AI_CHECKING') || msg.includes('ai_checking') || msg.includes('AI Checking') || msg.includes('AI_CHECK');
         if (isAiCheckLog) {
-            const aiProgMatch = msg.match(/Tiến trình:\s*(\d+)\s*\/\s*(\d+)\s*bản ghi/i);
-            if (aiProgMatch) {
-                progressCurrents.aicheck = parseInt(aiProgMatch[1]);
-                progressTotals.aicheck = parseInt(aiProgMatch[2]) || progressTotals.aicheck;
+            const aiTotalMatch = msg.match(/Tổng số bản ghi trong file:\s*(\d+)/i) || msg.match(/Tổng số bản ghi:\s*(\d+)/i);
+            if (aiTotalMatch) {
+                const parsedVal = parseInt(aiTotalMatch[1]);
+                if (parsedVal && parsedVal > 0) {
+                    progressTotals.aicheck = parsedVal;
+                    threadProgress.aicheck_top = 0;
+                    threadProgress.aicheck_bottom = 0;
+                    progressCurrents.aicheck = 0;
+                    updateToolProgress('aicheck', 0, progressTotals.aicheck);
+                    updateToolStatus('aicheck', 'running', 'Đang AI Checking');
+                }
+            }
+
+            if (msg.includes('Hoàn thành 1 bản ghi') || msg.includes('HAPPY CASE') || msg.includes('WORST CASE') || msg.includes('Gemini AI Match Score')) {
+                if (msg.includes('TOP')) {
+                    threadProgress.aicheck_top += 1;
+                } else if (msg.includes('BOTTOM')) {
+                    threadProgress.aicheck_bottom += 1;
+                } else {
+                    threadProgress.aicheck_top += 1;
+                }
+                progressCurrents.aicheck = Math.min(progressTotals.aicheck, threadProgress.aicheck_top + threadProgress.aicheck_bottom);
                 updateToolProgress('aicheck', progressCurrents.aicheck, progressTotals.aicheck);
                 updateToolStatus('aicheck', 'running', 'Đang AI Checking');
             }
-            if (msg.includes('HOÀN THÀNH AI CHECKING!')) {
+
+            if (msg.includes('HOÀN THÀNH AI CHECKING!') || msg.includes('ai checking hoàn thành')) {
+                updateToolProgress('aicheck', progressTotals.aicheck, progressTotals.aicheck);
                 updateToolStatus('aicheck', 'completed', 'Hoàn thành');
             }
         }
@@ -723,17 +776,57 @@ document.addEventListener('DOMContentLoaded', () => {
         btnStartPhone.addEventListener('click', () => {
             const curFile = getCurrentOutputFile();
             setToolFile('phone', curFile);
+            if (allRecords && allRecords.length > 0) {
+                progressTotals.phone = allRecords.length;
+            }
+            threadProgress.phone_top = 0;
+            threadProgress.phone_bottom = 0;
+            progressCurrents.phone = 0;
+            updateToolProgress('phone', 0, progressTotals.phone);
             updateToolStatus('phone', 'running', 'Đang quét SĐT');
             triggerTask('start/phone_dual');
         });
     }
 
-    document.getElementById('btn-start-cat-repair').addEventListener('click', () => {
-        const curFile = getCurrentOutputFile();
-        setToolFile('cat', curFile);
-        updateToolStatus('cat', 'running', 'Đang dò');
-        triggerTask('start/cat_repair');
-    });
+    const modalCatRepair = document.getElementById('modal-cat-repair');
+    const btnStartCatRepair = document.getElementById('btn-start-cat-repair');
+    const btnCloseCatModal = document.getElementById('btn-close-cat-modal');
+    const btnCancelCatModal = document.getElementById('btn-cancel-cat-modal');
+    const btnConfirmCatModal = document.getElementById('btn-confirm-cat-modal');
+
+    if (btnStartCatRepair && modalCatRepair) {
+        btnStartCatRepair.addEventListener('click', () => {
+            modalCatRepair.classList.remove('hidden');
+        });
+    }
+
+    if (btnCloseCatModal && modalCatRepair) {
+        btnCloseCatModal.addEventListener('click', () => {
+            modalCatRepair.classList.add('hidden');
+        });
+    }
+
+    if (btnCancelCatModal && modalCatRepair) {
+        btnCancelCatModal.addEventListener('click', () => {
+            modalCatRepair.classList.add('hidden');
+        });
+    }
+
+    if (btnConfirmCatModal && modalCatRepair) {
+        btnConfirmCatModal.addEventListener('click', () => {
+            modalCatRepair.classList.add('hidden');
+            const selectedSource = document.querySelector('input[name="cat-repair-source"]:checked')?.value || 'maps';
+            const curFile = getCurrentOutputFile();
+            setToolFile('cat', curFile);
+            updateToolStatus('cat', 'running', 'Đang dò');
+            
+            if (selectedSource === 'booking') {
+                triggerTask('start/cat_repair_booking');
+            } else {
+                triggerTask('start/cat_repair');
+            }
+        });
+    }
 
     document.getElementById('btn-start-info-repair').addEventListener('click', () => {
         const curFile = getCurrentOutputFile();
@@ -769,6 +862,13 @@ document.addEventListener('DOMContentLoaded', () => {
         btnStartAiCheck.addEventListener('click', () => {
             const curFile = getCurrentOutputFile();
             setToolFile('aicheck', curFile);
+            if (allRecords && allRecords.length > 0) {
+                progressTotals.aicheck = allRecords.length;
+            }
+            threadProgress.aicheck_top = 0;
+            threadProgress.aicheck_bottom = 0;
+            progressCurrents.aicheck = 0;
+            updateToolProgress('aicheck', 0, progressTotals.aicheck);
             updateToolStatus('aicheck', 'running', 'Đang AI Checking');
             triggerTask('start/ai_checking');
         });
@@ -797,7 +897,19 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(loadTableData, 3000);
 
     function updateStats(records) {
-        document.getElementById('stat-total-records').innerText = records.length;
+        const totalRecs = records.length;
+        document.getElementById('stat-total-records').innerText = totalRecs;
+
+        if (totalRecs > 0) {
+            ['phone', 'aicheck', 'email', 'cat', 'star', 'mismatch', 'booking'].forEach(key => {
+                const badgeEl = document.getElementById(`badge-${key}-status`);
+                const isRunning = badgeEl && badgeEl.classList.contains('running');
+                if (!isRunning && (progressTotals[key] === 100 || !progressTotals[key])) {
+                    progressTotals[key] = totalRecs;
+                    updateToolProgress(key, progressCurrents[key] || 0, progressTotals[key]);
+                }
+            });
+        }
 
         let emailCount = 0;
         let categoryCount = 0;

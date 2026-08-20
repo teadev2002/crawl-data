@@ -19,6 +19,10 @@ if sys.platform.startswith('win'):
 
 from playwright.sync_api import sync_playwright
 
+def strip_apartment_tag(s):
+    if not s: return ""
+    return re.sub(r'\s*\(\s*#\s*căn\s*[-\s]?hộ\s*\)|\s*\(\s*#\s*can\s*[-\s]?ho\s*\)', '', str(s), flags=re.IGNORECASE).strip()
+
 # Import Google GenAI SDK (google-genai hoặc google-generativeai)
 HAS_GENAI = False
 genai_module = None
@@ -350,6 +354,7 @@ def run_ai_checking(input_file=None, mode="full"):
         print(f"[{mode_tag}] Lỗi: Không tìm thấy file dữ liệu '{input_file}'!")
         return
 
+    print(f"[*] [AI_CHECKING] Đang đọc file dữ liệu: {input_file}")
     records = safe_read_json(input_file)
 
     if records is None or not isinstance(records, list):
@@ -361,6 +366,7 @@ def run_ai_checking(input_file=None, mode="full"):
     records = formatted_records
 
     total_need_process = len(records)
+    print(f"[*] [AI_CHECKING] Tổng số bản ghi trong file: {total_need_process}")
     midpoint = total_need_process // 2 if total_need_process > 1 else 1
 
     to_process_indices = list(enumerate(records))
@@ -392,8 +398,9 @@ def run_ai_checking(input_file=None, mode="full"):
         page = context.pages[0] if context.pages else context.new_page()
 
         matched_count = 0
+        total_items_count = len(target_items)
 
-        for index_in_file, r in target_items:
+        for idx_in_loop, (index_in_file, r) in enumerate(target_items, 1):
             if not isinstance(r, dict):
                 continue
 
@@ -403,12 +410,16 @@ def run_ai_checking(input_file=None, mode="full"):
             original_booking_url = r.get("url", "")
             original_source = r.get("source", f"Booking: {original_booking_url}")
 
+            pct = (idx_in_loop / total_items_count) * 100
+            print(f"[*] [{mode_tag}] Tiến trình: Đã quét {idx_in_loop}/{total_items_count} bản ghi ({pct:.1f}%)")
+
             if not title:
                 print(f"[{mode_tag}] [{index_in_file+1}/{total_need_process}] Bỏ qua STT {stt} do không có Tên cơ sở.")
                 continue
 
-            # BƯỚC 1: Tạo từ khóa tìm kiếm chuẩn: Title + target_province (từ config.json)
-            clean_t = fix_vietnamese_abbreviations(title)
+            # BƯỚC 1: Tạo từ khóa tìm kiếm chuẩn: Title (đã bóc #can-ho) + target_province (từ config.json)
+            search_title = strip_apartment_tag(title)
+            clean_t = fix_vietnamese_abbreviations(search_title)
             target_prov = CONFIG.get("target_province", "")
             if target_prov and target_prov.lower() != "none":
                 chat_user_prompt = f"{clean_t} {target_prov}".strip()
@@ -456,7 +467,7 @@ def run_ai_checking(input_file=None, mode="full"):
                                 card_title = clean_text(a_card.get_attribute('aria-label') or "")
                             
                             if card_title:
-                                sim_score = calculate_title_similarity(title, card_title)
+                                sim_score = calculate_title_similarity(search_title, card_title)
                                 if sim_score >= 50 and sim_score > best_match_score:
                                     best_match_score = sim_score
                                     best_match_url = a_card.get_attribute('href')
@@ -522,9 +533,9 @@ def run_ai_checking(input_file=None, mode="full"):
                     pass
 
             # BƯỚC 6: Đánh giá Match Score (Yêu cầu >= 50%)
-            check_t = maps_title_from_ai if maps_title_from_ai else title
+            check_t = maps_title_from_ai if maps_title_from_ai else search_title
             check_a = maps_addr_from_ai if maps_addr_from_ai else address
-            match_score = evaluate_match_score_with_gemini(client, title, address, check_t, check_a)
+            match_score = evaluate_match_score_with_gemini(client, search_title, address, check_t, check_a)
             print(f"[{mode_tag}] ➔ Gemini AI Match Score: {match_score}% (Yêu cầu: >= 50%)")
 
             # BƯỚC 7: Xử lý HAPPY CASE (>= 50%) & WORST CASE (< 50%)
@@ -554,8 +565,8 @@ def run_ai_checking(input_file=None, mode="full"):
                 r["source"] = original_source
                 r["totalScore"] = ""
 
-            pct = ((index_in_file + 1) / total_need_process * 100)
-            print(f"[{mode_tag}] Tiến trình: {index_in_file + 1} / {total_need_process} bản ghi ({pct:.1f}%)")
+            pct = (idx_in_loop / total_items_count * 100)
+            print(f"[{mode_tag}] Hoàn thành 1 bản ghi ({idx_in_loop}/{total_items_count})")
 
         try:
             browser.close()

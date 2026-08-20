@@ -409,15 +409,13 @@ def extract_detail_page(page, url):
                     }
                 }
 
-                // 3. ĐỊNH VỊ CHÍNH XÁC NÚT: <span class="bui-button__text">Đặt căn hộ của bạn</span>
-                // Nếu gặp "Đặt ngay" -> is_apartment = false (Giữ nguyên tiêu đề gốc)
-                const buiSpans = Array.from(document.querySelectorAll('.bui-button__text, span.bui-button__text, #hcta, button, span, a, div'));
-                for (const sp of buiSpans) {
-                    const txt = (sp.innerText || sp.textContent || '').replace(/[\\n\\r\\t]+/g, ' ').replace(/\\s+/g, ' ').trim().toLowerCase();
-                    if (txt.includes('đặt căn hộ của bạn') || txt.includes('book your apartment')) {
-                        res.is_apartment = true;
-                        break;
-                    }
+                // 3. ĐỊNH VỊ CHÍNH XÁC THẺ: rating-squares (Đánh dấu căn hộ (#can-ho))
+                // Nếu gặp rating-stars -> is_apartment = false (Xử lý bình thường)
+                const hasRatingSquares = document.querySelector('[data-testid="rating-squares"], [data-testid*="rating-squares"]');
+                if (hasRatingSquares) {
+                    res.is_apartment = true;
+                } else {
+                    res.is_apartment = false;
                 }
 
                 return res;
@@ -666,7 +664,7 @@ def run_booking_harvester(input_destination=None, output_file=None):
                         if details.get("address") and details["address"].strip():
                             record_item["address"] = details["address"].strip()
 
-                        # CHỈ gắn cờ hậu tố (#can-ho) khi extract_detail_page phát hiện nút "Đặt căn hộ của bạn"
+                        # Gắn cờ hậu tố (#can-ho) khi extract_detail_page phát hiện thẻ rating-squares (đánh giá chất lượng căn hộ)
                         if details.get("is_apartment"):
                             t_curr = record_item.get("title", "")
                             if "(#can-ho)" not in t_curr:

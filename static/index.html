@@ -548,8 +548,9 @@
                             <input type="text" id="cfg-target-province-63" list="list-prov-63" placeholder="🔍 Gõ tìm trực tiếp hoặc chọn Tỉnh/Thành 63..." style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #3b82f6; background-color: var(--bg-card-input, #1e293b); color: #f8fafc; font-size: 0.95rem; outline: none;" autocomplete="off">
                             <datalist id="list-prov-63">
                                 <option value="none">-- Bỏ chọn / Sử dụng danh sách 34 tỉnh bên trên --</option>
-                                <option value="Hạ Long">Hạ Long</option>
                                 <option value="Lai Châu">Lai Châu</option>
+                                <option value="Bình Thuận">Bình Thuận</option>
+                                <option value="Phan Thiết">Phan Thiết</option>
                                 <option value="Điện Biên">Điện Biên</option>
                                 <option value="Sơn La">Sơn La</option>
                                 <option value="Lào Cai">Lào Cai</option>
@@ -586,7 +587,7 @@
                                 <option value="Bình Định">Bình Định</option>
                                 <option value="Kon Tum">Kon Tum</option>
                                 <option value="Gia Lai">Gia Lai</option>
-                                <option value="Đắk Lắk">Đắk Lắk</option>
+                                <option value="Đắk Lắk">Đắk Lắk</option>cao
                                 <option value="Đắc Nông">Đắc Nông</option>
                                 <option value="Phú Yên">Phú Yên</option>
                                 <option value="Khánh Hoà">Khánh Hoà</option>
@@ -733,6 +734,43 @@
     <!-- TOAST NOTIFICATION CONTAINER -->
     <div id="toast-container" class="toast-container"></div>
 
-    <script src="/static/app.js?v=1.0.9"></script>
+    <!-- MODAL POPUP: SELECT CATEGORY REPAIR MODE -->
+    <div id="modal-cat-repair" class="modal-backdrop hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; width: 90%; max-width: 480px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); color: #f8fafc;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
+                <h3 style="margin: 0; font-size: 1.1rem; color: #f8fafc; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color: #38bdf8;"></i> Chọn Nguồn Dò CategoryName
+                </h3>
+                <button type="button" id="btn-close-cat-modal" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer;">&times;</button>
+            </div>
+            <p style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 1.25rem; line-height: 1.5;">Vui lòng chọn phương thức / nguồn dữ liệu bạn muốn sử dụng để bổ sung trường <b>categoryName</b>:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <label style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem; border-radius: 8px; border: 1px solid #3b82f6; background: rgba(59, 130, 246, 0.1); cursor: pointer;">
+                    <input type="radio" name="cat-repair-source" value="maps" checked style="margin-top: 0.25rem; accent-color: #3b82f6;">
+                    <div>
+                        <strong style="color: #60a5fa; font-size: 0.95rem;">🗺️ Dò qua Google Maps (2 Luồng)</strong>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: #94a3b8; line-height: 1.4;">Duyệt link Google Maps, trích xuất loại hình chỗ nghỉ bên dưới tên H1.</p>
+                    </div>
+                </label>
+                <label style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem; border-radius: 8px; border: 1px solid #003580; background: rgba(0, 53, 128, 0.2); cursor: pointer;">
+                    <input type="radio" name="cat-repair-source" value="booking" style="margin-top: 0.25rem; accent-color: #38bdf8;">
+                    <div>
+                        <strong style="color: #38bdf8; font-size: 0.95rem;">🏨 Dò qua Booking.com (2 Luồng)</strong>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: #94a3b8; line-height: 1.4;">Đọc link Booking từ field <code>source</code>, mở trang tìm <code>rating-stars</code> (4 trên 5 sao ➔ 4-star hotel).</p>
+                    </div>
+                </label>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button class="btn btn-outline" id="btn-cancel-cat-modal" style="padding: 0.5rem 1rem; color: #94a3b8; border-color: #475569;">Hủy bỏ</button>
+                <button class="btn btn-primary" id="btn-confirm-cat-modal" style="padding: 0.5rem 1.25rem; background: #3b82f6; border-color: #2563eb;">
+                    <i class="fa-solid fa-rocket"></i> Bắt đầu chạy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=1.1.4"></script>
 </body>
 </html>

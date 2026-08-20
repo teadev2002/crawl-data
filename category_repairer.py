@@ -127,9 +127,21 @@ def safe_save_category(target_file, target_stt, target_url, category_name):
         return safe_write_json(target_file, formatted_records)
     return False
 
-def repair_categories(mode="top"):
+def extract_booking_url(source_str):
+    if not source_str:
+        return ""
+    m = re.search(r'https?://[^\s]+\.booking\.com/[^\s]+', str(source_str))
+    if m:
+        return m.group(0)
+    if "booking.com" in str(source_str).lower():
+        cleaned = re.sub(r'^Booking:\s*', '', str(source_str), flags=re.IGNORECASE).strip()
+        if cleaned.startswith("http"):
+            return cleaned
+    return ""
+
+def repair_categories(mode="top", source_type="google_maps"):
     global USE_MY_CHROME_PROFILE
-    if mode == "bottom":
+    if mode == "bottom" or source_type == "booking":
         USE_MY_CHROME_PROFILE = False
 
     target_file = TARGET_JSON_FILE
@@ -138,7 +150,7 @@ def repair_categories(mode="top"):
         print("[*] Vui lòng kiểm tra lại tên file trong config.json.")
         return
         
-    print(f"[*] [{mode.upper()}] Đang đọc file dữ liệu: {target_file}")
+    print(f"[*] [{mode.upper()}] Đang đọc file dữ liệu: {target_file} (Nguồn: {source_type.upper()})")
     records = safe_read_json(target_file)
 
     if records is None or not isinstance(records, list):
@@ -171,12 +183,13 @@ def repair_categories(mode="top"):
         except Exception as e:
             print(f"[!] Lỗi khi đồng bộ file ban đầu: {e}")
 
-    # Lọc ra các bản ghi chưa có categoryName hoặc bị trống/NA
+    # Lọc ra các bản ghi cần phục hồi categoryName
     repair_indices = []
     for idx, r in enumerate(records):
         if isinstance(r, dict):
             cat = str(r.get("categoryName", "")).strip()
-            if not cat or cat == "N/A":
+            # Ở chế độ booking hoặc khi cat rỗng/N/A hoặc dính 5-star hotel nghi ngờ
+            if source_type == "booking" or not cat or cat in ["N/A", "5-star hotel"]:
                 repair_indices.append((idx, r))
 
     total_need_repair = len(repair_indices)
@@ -205,7 +218,7 @@ def repair_categories(mode="top"):
         return
 
     with sync_playwright() as p:
-        if USE_MY_CHROME_PROFILE:
+        if USE_MY_CHROME_PROFILE and source_type != "booking":
             print(f"[*] [{mode.upper()}] Đang mở Google Chrome thật tại: {CHROME_PROFILE_PATH}...")
             context = p.chromium.launch_persistent_context(
                 CHROME_PROFILE_PATH,
@@ -214,7 +227,7 @@ def repair_categories(mode="top"):
             )
             page = context.pages[0] if context.pages else context.new_page()
         else:
-            print(f"[*] [{mode.upper()}] Đang mở trình duyệt ảo mặc định...")
+            print(f"[*] [{mode.upper()}] Đang mở trình duyệt ảo mặc định ({source_type.upper()})...")
             browser = p.chromium.launch(headless=False)
             context = browser.new_context()
             page = context.new_page()
@@ -222,69 +235,73 @@ def repair_categories(mode="top"):
         repaired_count = 0
 
         for idx_attempt, (index_in_file, r) in enumerate(repair_indices):
-            url = r.get("url", "")
             stt = r.get("stt", index_in_file + 1)
             title = r.get("title", "Khởi tạo")
             
-            if not url:
-                print(f"[-] [{mode.upper()}] Bỏ qua STT {stt} do không có trường URL.")
-                continue
+            if source_type == "booking":
+                target_url = extract_booking_url(r.get("source", "")) or extract_booking_url(r.get("url", ""))
+                if not target_url:
+                    print(f"[-] [{mode.upper()}] Bỏ qua STT {stt} do không tìm thấy link Booking.com trong trường source/url.")
+                    continue
+            else:
+                target_url = r.get("url", "")
+                if not target_url:
+                    print(f"[-] [{mode.upper()}] Bỏ qua STT {stt} do không có trường URL.")
+                    continue
 
-            # Kiểm tra chéo Real-Time trước khi cào: Bỏ qua nếu luồng kia vừa điền categoryName xong
-            already_done = False
+            print(f"\n[*] [{mode.upper()}] [CategoryName {source_type.upper()}] Đang phục hồi [{repaired_count + 1}/{total_need_repair}] - STT {stt}: {title}")
             try:
-                if os.path.exists(target_file):
-                    with open(target_file, 'r', encoding='utf-8') as check_f:
-                        check_recs = json.load(check_f)
-                        if isinstance(check_recs, list):
-                            for cr in check_recs:
-                                if isinstance(cr, dict):
-                                    match_stt = str(cr.get("stt", "")) == str(stt)
-                                    match_url = url and cr.get("url", "") == url
-                                    if match_stt or match_url:
-                                        curr_cat = str(cr.get("categoryName", "")).strip()
-                                        if curr_cat and curr_cat != "N/A":
-                                            print(f"[-] [{mode.upper()}] Bỏ qua STT {stt}: Đã được luồng kia lưu categoryName '{curr_cat}' trước.")
-                                            already_done = True
-                                            break
-            except Exception:
-                pass
-
-            if already_done:
-                continue
-
-            print(f"\n[*] [{mode.upper()}] [CategoryName] Đang phục hồi [{repaired_count + 1}/{total_need_repair}] - STT {stt}: {title}")
-            try:
-                page.goto(url, wait_until='domcontentloaded', timeout=60000)
-                # Chờ trang tải hoàn tất trong 1.5 giây
+                page.goto(target_url, wait_until='domcontentloaded', timeout=60000)
                 time.sleep(1.5)
 
                 cat_text = ""
-                # 1. Bộ chọn chính: Nút category dưới h1
-                cat_elements = page.locator('button[jsaction*="category"], button[data-item-id*="category"]').all()
-                if cat_elements:
-                    cat_text = clean_text(cat_elements[0].inner_text())
-
-                # 2. Bộ chọn dự phòng: Quét văn bản dòng rating cạnh dấu chấm (·)
-                if not cat_text:
+                if source_type == "booking":
+                    # BÓC TÁCH SỐ SAO / RATING STARS TỪ TRANG BOOKING.COM
                     try:
-                        header_text = page.locator('div[role="main"]').first.inner_text()
-                        if "·" in header_text:
-                            for line in header_text.split('\n'):
-                                if "·" in line:
-                                    parts = line.split("·")
-                                    if len(parts) > 1:
-                                        candidate = parts[1].strip()
-                                        if candidate and len(candidate) < 60:
-                                            cat_text = clean_text(candidate)
-                                            break
+                        star_loc = page.locator('[data-testid="rating-stars"], [data-testid="quality-rating"], [aria-label*="trên 5 sao"], [aria-label*="out of 5 stars"], [aria-label*="sao"]').first
+                        if star_loc.count() > 0:
+                            aria_label = star_loc.get_attribute('aria-label') or star_loc.inner_text() or ""
+                            star_match = re.search(r'(\d+)\s*(?:trên|out of|\/|\s*sao|\s*stars?)', aria_label, re.IGNORECASE)
+                            if star_match:
+                                star_num = int(star_match.group(1))
+                                if 1 <= star_num <= 5:
+                                    cat_text = f"{star_num}-star hotel"
                     except Exception:
                         pass
+
+                    if not cat_text:
+                        type_loc = page.locator('[data-testid="property-type"], .hp__hotel-title-badge').first
+                        if type_loc.count() > 0:
+                            cat_text = clean_text(type_loc.inner_text())
+
+                    if not cat_text:
+                        cat_text = "Hotel"
+                else:
+                    # 1. Bộ chọn chính: Nút category dưới h1
+                    cat_elements = page.locator('button[jsaction*="category"], button[data-item-id*="category"]').all()
+                    if cat_elements:
+                        cat_text = clean_text(cat_elements[0].inner_text())
+
+                    # 2. Bộ chọn dự phòng: Quét văn bản dòng rating cạnh dấu chấm (·)
+                    if not cat_text:
+                        try:
+                            header_text = page.locator('div[role="main"]').first.inner_text()
+                            if "·" in header_text:
+                                for line in header_text.split('\n'):
+                                    if "·" in line:
+                                        parts = line.split("·")
+                                        if len(parts) > 1:
+                                            candidate = parts[1].strip()
+                                            if candidate and len(candidate) < 60:
+                                                cat_text = clean_text(candidate)
+                                                break
+                        except Exception:
+                            pass
 
                 category_found = cat_text if cat_text else "N/A"
                 
                 # Lưu đè Real-Time an toàn bằng safe_save_category
-                saved = safe_save_category(target_file, stt, url, category_found)
+                saved = safe_save_category(target_file, stt, r.get("url"), category_found)
                 if saved:
                     repaired_count += 1
                     print(f"✓ [{mode.upper()}] Real-Time Save STT {stt}: [{title}] -> categoryName: '{category_found}'")
@@ -299,7 +316,7 @@ def repair_categories(mode="top"):
             print(f"[CAT_{mode.upper()}] Tiến trình: {total_scanned} / {total_file_records} bản ghi đã quét ({pct_scanned:.1f}%)")
 
         # Đóng trình duyệt
-        if USE_MY_CHROME_PROFILE:
+        if USE_MY_CHROME_PROFILE and source_type != "booking":
             context.close()
         else:
             browser.close()
@@ -307,12 +324,16 @@ def repair_categories(mode="top"):
     print(f"\n[+] [{mode.upper()}] PHỤC HỒI HOÀN TẤT! Đã bổ sung xong {repaired_count}/{total_need_repair} bản ghi.")
 
 if __name__ == "__main__":
-    # Đọc tham số dòng lệnh --mode top / --mode bottom
     mode = "top"
+    source_type = "google_maps"
     for arg in sys.argv[1:]:
         if arg.startswith("--mode="):
             mode = arg.split("=")[1].lower()
+        elif arg.startswith("--source_type="):
+            source_type = arg.split("=")[1].lower()
         elif arg.lower() in ["top", "bottom"]:
             mode = arg.lower()
+        elif arg.lower() in ["booking", "google_maps", "maps"]:
+            source_type = "booking" if arg.lower() == "booking" else "google_maps"
             
-    repair_categories(mode=mode)
+    repair_categories(mode=mode, source_type=source_type)

@@ -9,6 +9,10 @@ import unicodedata
 from urllib.parse import unquote, urljoin, urlparse, parse_qs
 from playwright.sync_api import sync_playwright
 
+def strip_apartment_tag(s):
+    if not s: return ""
+    return re.sub(r'\s*\(\s*#\s*căn\s*[-\s]?hộ\s*\)|\s*\(\s*#\s*can\s*[-\s]?ho\s*\)', '', str(s), flags=re.IGNORECASE).strip()
+
 def strip_vietnamese_accents(s):
     if not s: return ""
     nfkd = unicodedata.normalize('NFD', s)
@@ -824,7 +828,8 @@ def harvest_phones(mode="top"):
         page = context.pages[0] if context.pages else context.new_page()
 
         success_count = 0
-        for index_in_file, item in target_items:
+        total_items_count = len(target_items)
+        for idx_in_loop, (index_in_file, item) in enumerate(target_items, 1):
             stt = item.get("stt", index_in_file + 1)
             title = item.get("title", "Không rõ tên")
             website = item.get("website", "")
@@ -832,7 +837,8 @@ def harvest_phones(mode="top"):
             address = item.get("address", "")
             current_phone = item.get("phone", "")
 
-            print(f"\n[*] [PHONE_HARVEST] [{mode.upper()}] Đang xử lý STT {stt}/{len(records)}: '{title}' (SĐT hiện có: '{current_phone}')...")
+            pct = (idx_in_loop / total_items_count) * 100
+            print(f"[*] [PHONE_HARVEST] [{mode.upper()}] Đang xử lý STT {stt}/{len(records)}: '{title}' (SĐT hiện có: '{current_phone}')...")
 
             phone_found = None
             source_found = ""
@@ -840,13 +846,15 @@ def harvest_phones(mode="top"):
 
             url = item.get("url", "")
 
+            search_title = strip_apartment_tag(title)
+
             # 1. Quét qua Facebook / Website chính nếu có
             if facebook and facebook.strip() != "":
-                phone_found, source_found = crawl_facebook_for_phone(page, facebook, target_title=title)
+                phone_found, source_found = crawl_facebook_for_phone(page, facebook, target_title=search_title)
             elif website and website.strip() != "":
                 if "facebook.com" in website.lower():
                     discovered_facebook = website
-                    phone_found, source_found = crawl_facebook_for_phone(page, website, target_title=title)
+                    phone_found, source_found = crawl_facebook_for_phone(page, website, target_title=search_title)
                 else:
                     phone_found, source_found = crawl_website_for_phone(page, website)
 
@@ -856,14 +864,14 @@ def harvest_phones(mode="top"):
 
             # 3. Tìm Facebook qua Search Engines nếu chưa có Facebook
             if not phone_found and (not discovered_facebook or discovered_facebook.strip() == ""):
-                fb_url = search_google_for_facebook(page, title, address)
+                fb_url = search_google_for_facebook(page, search_title, address)
                 if fb_url:
                     discovered_facebook = fb_url
-                    phone_found, source_found = crawl_facebook_for_phone(page, fb_url, target_title=title)
+                    phone_found, source_found = crawl_facebook_for_phone(page, fb_url, target_title=search_title)
 
             # 4. Tìm trực tiếp qua Google Search (AI Overview & Snippets)
             if not phone_found:
-                phone_found, source_found = search_google_for_phone(page, title, address)
+                phone_found, source_found = search_google_for_phone(page, search_title, address)
             if phone_found:
                 saved, flagged_count, total_recs, final_p = safe_save_phone(
                     target_file, stt, title, url, phone_found, source_found, discovered_facebook
@@ -876,6 +884,7 @@ def harvest_phones(mode="top"):
             else:
                 print(f"[-] [PHONE_HARVEST] [{mode.upper()}] Không tìm thấy SĐT mới cho STT {stt} ({title}).")
 
+            print(f"[*] [PHONE_HARVEST] [{mode.upper()}] Hoàn thành 1 bản ghi ({idx_in_loop}/{total_items_count})")
             time.sleep(random.uniform(2.0, 3.5))
 
         browser.close()

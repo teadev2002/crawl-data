@@ -304,9 +304,16 @@ async def start_phone_dual():
 @app.post("/api/tasks/start/cat_repair")
 async def start_cat_repair():
     loop = asyncio.get_event_loop()
-    threading.Thread(target=run_command_stream, args=(["category_repairer.py", "--mode=top"], "CAT_TOP", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["category_repairer.py", "--mode=bottom"], "CAT_BOTTOM", loop), daemon=True).start()
-    return {"status": "success", "message": "Đã kích hoạt Dò CategoryName song song 2 luồng (TOP & BOTTOM)!"}
+    threading.Thread(target=run_command_stream, args=(["category_repairer.py", "--source_type=google_maps", "--mode=top"], "CAT_TOP", loop), daemon=True).start()
+    threading.Thread(target=run_command_stream, args=(["category_repairer.py", "--source_type=google_maps", "--mode=bottom"], "CAT_BOTTOM", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Dò CategoryName qua Google Maps song song 2 luồng (TOP & BOTTOM)!"}
+
+@app.post("/api/tasks/start/cat_repair_booking")
+async def start_cat_repair_booking():
+    loop = asyncio.get_event_loop()
+    threading.Thread(target=run_command_stream, args=(["category_repairer.py", "--source_type=booking", "--mode=top"], "CAT_TOP", loop), daemon=True).start()
+    threading.Thread(target=run_command_stream, args=(["category_repairer.py", "--source_type=booking", "--mode=bottom"], "CAT_BOTTOM", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Dò CategoryName qua Booking.com song song 2 luồng (TOP & BOTTOM)!"}
 
 @app.post("/api/tasks/start/info_repair")
 async def start_info_repair():
