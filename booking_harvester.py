@@ -418,6 +418,19 @@ def extract_detail_page(page, url):
                     res.is_apartment = false;
                 }
 
+                // 4. BÓC TÁCH SỐ SAO KHÁCH SẠN (rating-stars / quality-rating)
+                const ratingStars = document.querySelector('[data-testid="rating-stars"], [data-testid*="rating-stars"], [aria-label*="trên 5 sao"], [aria-label*="out of 5 stars"]');
+                if (ratingStars) {
+                    const ariaLabel = ratingStars.getAttribute('aria-label') || ratingStars.innerText || '';
+                    const m = ariaLabel.match(/(\\d+)\\s*(?:trên|out of|\\/|\\s*sao|\\s*stars?)/i);
+                    if (m) {
+                        const starNum = parseInt(m[1]);
+                        if (starNum >= 1 && starNum <= 5) {
+                            res.star_category = starNum + '-star hotel';
+                        }
+                    }
+                }
+
                 return res;
             }
         """)
@@ -669,6 +682,14 @@ def run_booking_harvester(input_destination=None, output_file=None):
                             t_curr = record_item.get("title", "")
                             if "(#can-ho)" not in t_curr:
                                 record_item["title"] = f"{t_curr} (#can-ho)".strip()
+
+                        # Cập nhật số sao / categoryName nếu Stage 2 trích xuất được số sao thực tế từ thẻ rating-stars
+                        stage2_star_cat = details.get("star_category")
+                        if stage2_star_cat:
+                            stage1_cat = record_item.get("categoryName", "")
+                            if stage1_cat != stage2_star_cat:
+                                print(f"[{mode_tag}] [Stage 2 Star Sync] Cập nhật categoryName từ '{stage1_cat}' -> '{stage2_star_cat}' cho [{record_item.get('title')}]")
+                                record_item["categoryName"] = stage2_star_cat
 
                         record_item["totalScore"] = ""  # Đảm bảo rỗng 100%
 
