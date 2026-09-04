@@ -498,8 +498,10 @@ def run_booking_harvester(input_destination=None, output_file=None):
         page = context.pages[0] if context.pages else context.new_page()
 
         try:
-            target_url_cfg = CONFIG.get("target_url", "")
-            if target_url_cfg and "booking.com" in target_url_cfg:
+            target_url_cfg = CONFIG.get("target_url", "").strip()
+            if input_destination and ("booking.com" in input_destination.lower() or input_destination.startswith("http")):
+                search_url = input_destination
+            elif target_url_cfg and "booking.com" in target_url_cfg.lower():
                 search_url = target_url_cfg
             else:
                 search_url = f"https://www.booking.com/searchresults.vi.html?ss={quote_plus(input_destination)}"

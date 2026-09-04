@@ -605,6 +605,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const targetUrlEl = document.getElementById('cfg-target-url');
             if (targetUrlEl && cfg.target_url) targetUrlEl.value = cfg.target_url;
 
+            const chkFindAll = document.getElementById('cfg-find-all');
+            const chkFindNext = document.getElementById('cfg-find-next');
+
             // Xử lý nạp cấu hình 1 trong 2 chế độ cào email luôn ON
             if (chkFindAll && chkFindNext) {
                 if (cfg.findNext && !cfg.findAll) {
@@ -635,8 +638,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const text = await navigator.clipboard.readText();
                 if (text) {
                     const targetUrlEl = document.getElementById('cfg-target-url');
+                    const targetProvinceEl = document.getElementById('cfg-target-province');
+                    const targetProvince63El = document.getElementById('cfg-target-province-63');
                     if (targetUrlEl) {
                         targetUrlEl.value = text.trim();
+                        if (targetProvinceEl) targetProvinceEl.value = 'none';
+                        if (targetProvince63El) targetProvince63El.value = 'none';
                         appendLog(`[+] Đã dán nhanh liên kết URL mới từ Clipboard!`, 'info');
                     }
                 }
@@ -644,6 +651,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Không thể tự động đọc Clipboard. Bạn có thể dán liên kết bằng tổ hợp phím Ctrl + V.');
             }
         });
+    }
+
+    // 3-INPUT EXCLUSIVE SELECTION LOGIC (Chỉ sử dụng 1 trong 3 ô nhập tại một thời điểm)
+    const targetProvinceEl = document.getElementById('cfg-target-province');
+    const targetProvince63El = document.getElementById('cfg-target-province-63');
+    const targetUrlEl = document.getElementById('cfg-target-url');
+
+    function onInput3Changed() {
+        if (targetUrlEl && targetUrlEl.value.trim().length > 0) {
+            if (targetProvinceEl) targetProvinceEl.value = 'none';
+            if (targetProvince63El) targetProvince63El.value = 'none';
+        }
+    }
+
+    function onInput1Changed() {
+        if (targetProvinceEl && targetProvinceEl.value && targetProvinceEl.value !== 'none') {
+            if (targetProvince63El) targetProvince63El.value = 'none';
+            if (targetUrlEl) targetUrlEl.value = '';
+        }
+    }
+
+    function onInput2Changed() {
+        if (targetProvince63El && targetProvince63El.value && targetProvince63El.value !== 'none') {
+            if (targetProvinceEl) targetProvinceEl.value = 'none';
+            if (targetUrlEl) targetUrlEl.value = '';
+        }
+    }
+
+    if (targetUrlEl) {
+        targetUrlEl.addEventListener('input', onInput3Changed);
+        targetUrlEl.addEventListener('change', onInput3Changed);
+    }
+    if (targetProvinceEl) {
+        targetProvinceEl.addEventListener('input', onInput1Changed);
+        targetProvinceEl.addEventListener('change', onInput1Changed);
+    }
+    if (targetProvince63El) {
+        targetProvince63El.addEventListener('input', onInput2Changed);
+        targetProvince63El.addEventListener('change', onInput2Changed);
     }
 
     document.getElementById('btn-save-config').addEventListener('click', async () => {
@@ -659,27 +705,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const outputFileEl = document.getElementById('cfg-output-file');
         const maxResultsEl = document.getElementById('cfg-max-results');
         const captchaSoundEl = document.getElementById('cfg-captcha-sound');
-        const targetProvinceEl = document.getElementById('cfg-target-province');
-        const targetProvince63El = document.getElementById('cfg-target-province-63');
-        const targetUrlEl = document.getElementById('cfg-target-url');
+        const chkFindAllEl = document.getElementById('cfg-find-all');
+        const chkFindNextEl = document.getElementById('cfg-find-next');
+        const targetProvinceInputEl = document.getElementById('cfg-target-province');
+        const targetProvince63InputEl = document.getElementById('cfg-target-province-63');
+        const targetUrlInputEl = document.getElementById('cfg-target-url');
+
         const newMaxResults = maxResultsEl ? (parseInt(maxResultsEl.value) || 50) : 50;
 
         let selectedProvince = 'all';
-        if (targetProvinceEl && targetProvinceEl.value !== 'none' && !targetProvinceEl.disabled) {
-            selectedProvince = targetProvinceEl.value;
-        } else if (targetProvince63El && targetProvince63El.value !== 'none' && !targetProvince63El.disabled) {
-            selectedProvince = targetProvince63El.value;
+        const targetUrlVal = targetUrlInputEl ? targetUrlInputEl.value.trim() : '';
+
+        if (targetUrlVal && (targetUrlVal.startsWith('http') || targetUrlVal.includes('booking.com'))) {
+            selectedProvince = 'none';
+        } else if (targetProvinceInputEl && targetProvinceInputEl.value && targetProvinceInputEl.value !== 'none') {
+            selectedProvince = targetProvinceInputEl.value;
+        } else if (targetProvince63InputEl && targetProvince63InputEl.value && targetProvince63InputEl.value !== 'none') {
+            selectedProvince = targetProvince63InputEl.value;
         }
 
         const payload = {
             search_queries: queries,
-            target_url: targetUrlEl ? targetUrlEl.value.trim() : '',
+            target_url: targetUrlVal,
             output_file: outputFileEl ? outputFileEl.value.trim() : 'hotels.json',
             max_results: newMaxResults,
             USE_MY_CHROME_PROFILE: false,
             capcha_sound: captchaSoundEl ? captchaSoundEl.checked : false,
-            findAll: chkFindAll ? chkFindAll.checked : true,
-            findNext: chkFindNext ? chkFindNext.checked : false,
+            findAll: chkFindAllEl ? chkFindAllEl.checked : true,
+            findNext: chkFindNextEl ? chkFindNextEl.checked : false,
             target_service: selectedService,
             target_province: selectedProvince
         };
