@@ -82,7 +82,8 @@ def load_config_dict():
 
 def save_config_dict(cfg):
     config_file = "config.json"
-    cfg["USE_MY_CHROME_PROFILE"] = False
+    if "USE_MY_CHROME_PROFILE" not in cfg:
+        cfg["USE_MY_CHROME_PROFILE"] = True
     with open(config_file, 'w', encoding='utf-8') as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
     return True
@@ -338,9 +339,15 @@ async def start_booking_harvester():
 @app.post("/api/tasks/start/ai_checking")
 async def start_ai_checking():
     loop = asyncio.get_event_loop()
-    threading.Thread(target=run_command_stream, args=(["ai_checking.py", "--mode=top"], "AICHECK_TOP", loop), daemon=True).start()
-    threading.Thread(target=run_command_stream, args=(["ai_checking.py", "--mode=bottom"], "AICHECK_BOTTOM", loop), daemon=True).start()
-    return {"status": "success", "message": "Đã kích hoạt AI Checking song song 2 luồng Chromium (TOP & BOTTOM)!"}
+    threading.Thread(target=run_command_stream, args=(["ai_checking.py", "--mode=top"], "AI_CHECK_TOP", loop), daemon=True).start()
+    threading.Thread(target=run_command_stream, args=(["ai_checking.py", "--mode=bottom"], "AI_CHECK_BOTTOM", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt AI Checking song song 2 luồng (TOP & BOTTOM)!"}
+
+@app.post("/api/tasks/start/custom_keyword_scraper")
+async def start_custom_keyword_scraper():
+    loop = asyncio.get_event_loop()
+    threading.Thread(target=run_command_stream, args=(["custom_keyword_scraper.py"], "KEYWORD_SCRAPER", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Cào Từ Khóa Tự Do bằng Selenium Google Chrome!"}
 
 @app.post("/api/tasks/stop")
 async def stop_tasks():

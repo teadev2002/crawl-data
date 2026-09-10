@@ -374,6 +374,34 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- CARD 9: CUSTOM KEYWORD SCRAPER (SELENIUM CHROME) -->
+                        <div class="action-card">
+                            <div class="tool-card-header">
+                                <div class="tool-title-group">
+                                    <i class="fa-solid fa-magnifying-glass-location tool-icon" style="color: #10b981;"></i>
+                                    <h3>9. Cào Từ Khóa Tự Do (`key_research`)</h3>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-keyword-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                    <span class="file-name" id="file-output-keyword">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-keyword">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-keyword">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill" id="prog-bar-keyword" style="width: 0%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
+                                </div>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-primary" id="btn-start-keyword-action" style="width: 100%; background-color: #10b981; border-color: #059669;">
+                                    <i class="fa-solid fa-compass"></i> 🚀 Cào Từ Khóa Tự Do (Selenium)
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -482,8 +510,8 @@
                                 <i class="fa-solid fa-list-check"></i> Danh sách Từ khóa Tìm kiếm (`search_queries`)
                                 <span class="badge" id="query-count-badge">0 từ khóa</span>
                             </label>
-                            <p class="config-desc">Nhập mỗi từ khóa tìm kiếm trên 1 dòng (ví dụ: "khách sạn ở Quận 1", "homestay Đà Lạt"...)</p>
-                            <textarea id="cfg-search-queries" rows="15" placeholder="Nhập từ khóa tìm kiếm tại đây..."></textarea>
+                            <p class="config-desc">Nhập mỗi từ khóa tìm kiếm trên 1 dòng (Dùng chung cho cả Cào Google Maps Playwright và Cào Từ Khóa Tự Do Selenium Chrome, ví dụ: "khách sạn ở Quận 1", "công viên ở Nha Trang", "bảo tàng ở Hà Nội"...)</p>
+                            <textarea id="cfg-search-queries" rows="12" placeholder="Nhập từ khóa tìm kiếm tại đây..."></textarea>
                         </div>
 
                        
@@ -531,7 +559,7 @@
                                 <option value="Tây Ninh">Tây Ninh</option>
                                 <option value="Thái Nguyên">Thái Nguyên</option>
                                 <option value="Thanh Hóa">Thanh Hóa</option>
-                                <option value="Thành phố Cần Thơ">Thành phố Cần Thơ</option>
+                                <option value="Cần Thơ">Cần Thơ</option>
                                 <option value="Thành phố Đà Nẵng">Thành phố Đà Nẵng</option>
                                 <option value="Thành phố Hà Nội">Thành phố Hà Nội</option>
                                 <option value="Thành phố Hải Phòng">Thành phố Hải Phòng</option>
@@ -772,6 +800,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=1.1.5"></script>
+    <script src="/static/app.js?v=2.0.0"></script>
 </body>
 </html>

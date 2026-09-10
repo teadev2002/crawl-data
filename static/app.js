@@ -764,8 +764,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok && actionPath === 'start/map_5way') {
                 res = await fetch(`/api/tasks/start/map_dual`, { method: 'POST' });
             }
-            const data = await res.json();
-            appendLog(`[*] ${data.message}`, 'sys');
+            const data = await res.json().catch(() => ({}));
+            const msg = data.message || data.detail || data.msg || (res.ok ? 'Đã gửi yêu cầu kích hoạt tiến trình!' : `Lỗi HTTP ${res.status}`);
+            if (res.ok && data.status !== 'error') {
+                appendLog(`[*] ${msg}`, 'sys');
+            } else {
+                appendLog(`[!] ${msg}`, 'error');
+            }
         } catch (err) {
             appendLog(`[!] Lỗi khi gọi lệnh: ${err}`, 'error');
         }
@@ -924,6 +929,16 @@ document.addEventListener('DOMContentLoaded', () => {
             updateToolProgress('aicheck', 0, progressTotals.aicheck);
             updateToolStatus('aicheck', 'running', 'Đang AI Checking');
             triggerTask('start/ai_checking');
+        });
+    }
+
+    const btnStartKeyword = document.getElementById('btn-start-keyword-action');
+    if (btnStartKeyword) {
+        btnStartKeyword.addEventListener('click', () => {
+            const curFile = getCurrentOutputFile();
+            setToolFile('keyword', curFile);
+            updateToolStatus('keyword', 'running', 'Đang cào từ khóa');
+            triggerTask('start/custom_keyword_scraper');
         });
     }
 
