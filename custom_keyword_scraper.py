@@ -95,13 +95,34 @@ def load_config():
             queries = config.get("key_research", [])
 
         target_url = str(config.get("target_url", "") or "").strip()
+        target_province = str(config.get("target_province", "") or "").strip()
 
         if not queries and not target_url:
             print(f"\n[!] Lỗi: Không tìm thấy 'search_queries', 'key_research' hoặc 'target_url' trong '{config_file}'!")
             print("[*] Vui lòng nhập từ khóa tìm kiếm HOẶC dán liên kết 'target_url' vào file config.json.")
             sys.exit(1)
 
-        config["active_queries"] = queries if isinstance(queries, list) else []
+        # Ghép Tỉnh/Thành phố vào từng từ khóa tìm kiếm nếu người dùng chọn Tỉnh/Thành cụ thể
+        final_queries = []
+        if isinstance(queries, list):
+            for q in queries:
+                q_str = str(q).strip()
+                if not q_str:
+                    continue
+                if target_province and target_province.lower() not in ["all", "none", "off", "all_provinces", ""]:
+                    clean_prov_name = re.sub(r'^(TP\.?|Thành phố\s*|Tỉnh\s*)', '', target_province, flags=re.IGNORECASE).strip().lower()
+                    if clean_prov_name and clean_prov_name not in q_str.lower():
+                        combined_q = f"{q_str} {target_province}"
+                    else:
+                        combined_q = q_str
+                    final_queries.append(combined_q)
+                else:
+                    final_queries.append(q_str)
+
+        if target_province and target_province.lower() not in ["all", "none", "off", "all_provinces", ""] and final_queries:
+            print(f"[*] [KEYWORD_SCRAPER] Tự động kết hợp Tỉnh/Thành phố '{target_province}' vào {len(final_queries)} từ khóa tìm kiếm.")
+
+        config["active_queries"] = final_queries
         config["target_url"] = target_url
         
         if "USE_MY_CHROME_PROFILE" not in config:

@@ -989,7 +989,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnStartKeyword = document.getElementById('btn-start-keyword-action');
     if (btnStartKeyword) {
-        btnStartKeyword.addEventListener('click', () => {
+        btnStartKeyword.addEventListener('click', async () => {
+            await saveConfig();
             const curFile = getCurrentOutputFile();
             setToolFile('keyword', curFile);
             updateToolStatus('keyword', 'running', 'Đang cào từ khóa');
