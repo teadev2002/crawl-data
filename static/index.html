@@ -402,6 +402,119 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- CARD 10: MAP URL FINDER (2-TIER: TITLE >50% OR PHONE 8-DIGIT MATCH) -->
+                        <div class="action-card">
+                            <div class="tool-card-header">
+                                <div class="tool-title-group">
+                                    <i class="fa-solid fa-map-location-dot tool-icon" style="color: #3b82f6;"></i>
+                                    <h3>10. Tìm Link Google Maps URL (Tên > 50% / Trùng 8 Số SĐT)</h3>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-mapurl-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                    <span class="file-name" id="file-output-mapurl">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-mapurl">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-mapurl">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill" id="prog-bar-mapurl" style="width: 0%; background: linear-gradient(90deg, #3b82f6, #60a5fa);"></div>
+                                </div>
+                            </div>
+                            <div class="field-options-group" style="margin: 12px 0; padding: 10px 14px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                                <span style="font-size: 0.65rem; font-weight: 600; color: #1e40af; display: block; margin-bottom: 6px;">
+                                    <i class="fa-solid fa-list-check"></i>Chọn thêm field cho phép ghi đè (Mặc định: URL):
+                                </span>
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.85rem; color: #ffffff;">
+                                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                        <input type="checkbox" id="chk-mapurl-address" value="address"> <span>address</span>
+                                    </label>
+                                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                        <input type="checkbox" id="chk-mapurl-website" value="website"> <span>Website</span>
+                                    </label>
+                                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                        <input type="checkbox" id="chk-mapurl-category" value="categoryName"> <span>cateName</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-primary" id="btn-start-mapurl-action" style="width: 100%; background-color: #3b82f6; border-color: #2563eb;">
+                                    <i class="fa-solid fa-link"></i> 🚀 Tìm Link Google Maps URL (2 Luồng)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- CARD 11: VNTOUR HARVESTER -->
+                        <div class="action-card">
+                            <div class="tool-card-header">
+                                <div class="tool-title-group">
+                                    <i class="fa-solid fa-plane-departure tool-icon" style="color: #ec4899;"></i>
+                                    <h3>11. Cào VNTour (Vietnam Tourism)</h3>
+                                </div>
+                                <span class="tool-status-badge idle" id="badge-vntour-status">Sẵn sàng</span>
+                            </div>
+                            <div class="progress-info-box">
+                                <div class="file-output-row">
+                                    <span class="file-name" id="file-output-vntour">Chưa chạy</span>
+                                </div>
+                                <div class="progress-stats-row">
+                                    <span class="progress-text" id="prog-text-vntour">0 / 0 bản ghi</span>
+                                    <span class="progress-percent" id="prog-percent-vntour">0%</span>
+                                </div>
+                                <div class="progress-bar-track">
+                                    <div class="progress-bar-fill" id="prog-bar-vntour" style="width: 0%; background: linear-gradient(90deg, #ec4899, #f472b6);"></div>
+                                </div>
+                            </div>
+                            <div class="field-options-group" style="margin: 12px 0; padding: 10px 14px; background: rgba(236, 72, 153, 0.05); border-radius: 8px; border: 1px solid rgba(236, 72, 153, 0.2);">
+                                <span style="font-size: 0.75rem; font-weight: 600; color: #db2777; display: block; margin-bottom: 6px;">
+                                    <i class="fa-solid fa-location-dot"></i> Chọn Tỉnh / Thành phố:
+                                </span>
+                                <select id="cfg-vntour-province" style="width: 100%; padding: 8px 12px; border-radius: 6px; background: rgba(15, 23, 42, 0.8); color: #fff; border: 1px solid rgba(236, 72, 153, 0.4); font-size: 0.85rem;">
+                                    <option value="01">Thành phố Hà Nội</option>
+                                    <option value="79,77,74">Thành phố Hồ Chí Minh</option>
+                                    <option value="48,49" selected>Thành phố Đà Nẵng</option>
+                                    <option value="31,30">Thành phố Hải Phòng</option>
+                                    <option value="92,94,93">Thành phố Cần Thơ</option>
+                                    <option value="91,89">An Giang</option>
+                                    <option value="24,27">Bắc Ninh</option>
+                                    <option value="96,95">Cà Mau</option>
+                                    <option value="04">Cao Bằng</option>
+                                    <option value="66,54">Đắc Lắk</option>
+                                    <option value="75,70">Đồng Nai</option>
+                                    <option value="82,87">Đồng Tháp</option>
+                                    <option value="11">Điện Biên</option>
+                                    <option value="52,64">Gia Lai</option>
+                                    <option value="42">Hà Tĩnh</option>
+                                    <option value="33,34">Hưng Yên</option>
+                                    <option value="56,58">Khánh Hoà</option>
+                                    <option value="12">Lai Châu</option>
+                                    <option value="15,10">Lào Cai</option>
+                                    <option value="20">Lạng Sơn</option>
+                                    <option value="68,60,67">Lâm Đồng</option>
+                                    <option value="40">Nghệ An</option>
+                                    <option value="37,36,35">Ninh Bình</option>
+                                    <option value="25,26,17">Phú Thọ</option>
+                                    <option value="51,62">Quảng Ngãi</option>
+                                    <option value="22">Quảng Ninh</option>
+                                    <option value="44,45">Quảng Trị</option>
+                                    <option value="14">Sơn La</option>
+                                    <option value="80,72">Tây Ninh</option>
+                                    <option value="19,06">Thái Nguyên</option>
+                                    <option value="38">Thanh Hoá</option>
+                                    <option value="46">Thành phố Huế</option>
+                                    <option value="08,02">Tuyên Quang</option>
+                                    <option value="86,84,83">Vĩnh Long</option>
+                                </select>
+                            </div>
+                            <div class="action-controls">
+                                <button class="btn btn-primary" id="btn-start-vntour-action" style="width: 100%; background-color: #ec4899; border-color: #db2777;">
+                                    <i class="fa-solid fa-globe"></i> 🚀 Cào VNtour (Playwright)
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

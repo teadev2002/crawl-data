@@ -23,6 +23,52 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchWindowException, WebDriverException
 
+def sanitize_search_query(query):
+    """Làm sạch từ khóa tìm kiếm: loại bỏ các ký tự gạch ngang nối và ký tự đặc biệt gây hiểu nhầm thành chỉ đường (/maps/dir/)"""
+    if not query:
+        return ""
+    cleaned = re.sub(r'[\-\–\—\─\│]', ' ', str(query))
+    return re.sub(r'\s+', ' ', cleaned).strip()
+
+def perform_searchbox_query(driver, clean_q, mode_tag="KEYWORD_SCRAPER"):
+    """Mở Google Maps và submit từ khóa qua ô Searchbox #searchboxinput để đảm bảo hiển thị danh sách kết quả (Search Results)"""
+    try:
+        current = driver.current_url or ""
+        if "google.com/maps" not in current or "/maps/dir/" in current:
+            driver.get("https://www.google.com/maps?hl=vi")
+            time.sleep(2.0)
+
+        search_boxes = driver.find_elements(By.CSS_SELECTOR, "input#searchboxinput, input[name='q']")
+        if not search_boxes:
+            driver.get("https://www.google.com/maps?hl=vi")
+            time.sleep(2.0)
+            search_boxes = driver.find_elements(By.CSS_SELECTOR, "input#searchboxinput, input[name='q']")
+
+        if search_boxes:
+            sb = search_boxes[0]
+            sb.click()
+            sb.send_keys(Keys.CONTROL + "a")
+            sb.send_keys(Keys.BACKSPACE)
+            time.sleep(0.3)
+            sb.send_keys(clean_q)
+            sb.send_keys(Keys.ENTER)
+            time.sleep(3.5)
+            return True
+        else:
+            driver.get(f"https://www.google.com/maps/search/{quote_plus(clean_q)}?hl=vi")
+            time.sleep(3.5)
+            return True
+    except (NoSuchWindowException, WebDriverException):
+        raise
+    except Exception as err:
+        print(f"[{mode_tag}] [!] Lỗi khi submit Searchbox query: {err}")
+        try:
+            driver.get(f"https://www.google.com/maps/search/{quote_plus(clean_q)}?hl=vi")
+            time.sleep(3.5)
+        except Exception:
+            pass
+        return False
+
 # ==================== NẠP CẤU HÌNH TỪ FILE CONFIG.JSON ====================
 def get_default_chrome_profile_path():
     """Tự động xác định đường dẫn thư mục Chrome Remote Debug Profile trên Windows"""
@@ -47,12 +93,16 @@ def load_config():
         queries = config.get("search_queries", [])
         if not queries:
             queries = config.get("key_research", [])
-            
-        if not queries:
-            print(f"\n[!] Lỗi: Không tìm thấy 'search_queries' hoặc 'key_research' trong '{config_file}'!")
+
+        target_url = str(config.get("target_url", "") or "").strip()
+
+        if not queries and not target_url:
+            print(f"\n[!] Lỗi: Không tìm thấy 'search_queries', 'key_research' hoặc 'target_url' trong '{config_file}'!")
+            print("[*] Vui lòng nhập từ khóa tìm kiếm HOẶC dán liên kết 'target_url' vào file config.json.")
             sys.exit(1)
-            
-        config["active_queries"] = queries
+
+        config["active_queries"] = queries if isinstance(queries, list) else []
+        config["target_url"] = target_url
         
         if "USE_MY_CHROME_PROFILE" not in config:
             config["USE_MY_CHROME_PROFILE"] = True
@@ -322,10 +372,23 @@ def run_custom_keyword_scraper(queries=None, max_results=None, output_file=None,
         max_results = CONFIG.get("max_results", 200)
     if not output_file:
         output_file = CONFIG.get("output_file", "custom_keyword_results.json")
-        
+
+    target_url_cfg = str(CONFIG.get("target_url", "") or "").strip()
+
+    tasks = []
+    if target_url_cfg:
+        tasks.append({"type": "url", "value": target_url_cfg})
+    for q in (queries or []):
+        if q and str(q).strip():
+            tasks.append({"type": "query", "value": str(q).strip()})
+
+    if not tasks:
+        print("[KEYWORD_SCRAPER] [!] Không có tác vụ cào nào (thiếu cả target_url và search_queries).")
+        return
+
     mode_tag = "KEYWORD_SCRAPER"
     print(f"[{mode_tag}] Khởi chạy cào từ khóa tự do bằng Selenium Google Chrome...")
-    print(f"[{mode_tag}] Số từ khóa: {len(queries)} | Chỉ tiêu: {max_results} | File lưu: '{output_file}'")
+    print(f"[{mode_tag}] Số tác vụ: {len(tasks)} ({'1 URL target' if target_url_cfg else ''}{' + ' if target_url_cfg and queries else ''}{f'{len(queries)} từ khóa' if queries else ''}) | Chỉ tiêu: {max_results} | File lưu: '{output_file}'")
     
     # 0. Khởi tạo file xuất dữ liệu lập tức nếu chưa có
     if not os.path.exists(output_file):
@@ -357,20 +420,32 @@ def run_custom_keyword_scraper(queries=None, max_results=None, output_file=None,
     saved_count = 0
     
     try:
-        for q_idx, query in enumerate(queries):
+        for t_idx, task in enumerate(tasks):
             file_total = get_total_file_records(output_file)
             if saved_count >= max_results or file_total >= max_results:
                 print(f"[{mode_tag}] [+] Đã đạt chỉ tiêu tối đa ({file_total}/{max_results}). Hoàn thành!")
                 break
-                
-            search_url = f"https://www.google.com/maps/search/{quote_plus(query)}?hl=vi"
-            print(f"\n[{mode_tag}] --- Đang quét từ khóa ({q_idx+1}/{len(queries)}): '{query}' ---")
-            try:
-                driver.get(search_url)
-            except (NoSuchWindowException, WebDriverException):
-                print(f"[{mode_tag}] [!] Cửa sổ Google Chrome đã bị đóng hoặc mất kết nối. Dừng tiến trình.")
-                break
-            time.sleep(3.5)
+
+            task_type = task["type"]
+            task_val = task["value"]
+            clean_q = ""
+
+            if task_type == "url":
+                print(f"\n[{mode_tag}] --- Đang quét nguồn liên kết URL ({t_idx+1}/{len(tasks)}): '{task_val[:75]}...' ---")
+                try:
+                    driver.get(task_val)
+                    time.sleep(3.5)
+                except (NoSuchWindowException, WebDriverException):
+                    print(f"[{mode_tag}] [!] Cửa sổ Google Chrome đã bị đóng hoặc mất kết nối. Dừng tiến trình.")
+                    break
+            else:
+                clean_q = sanitize_search_query(task_val)
+                print(f"\n[{mode_tag}] --- Đang quét từ khóa ({t_idx+1}/{len(tasks)}): '{task_val}' ---")
+                try:
+                    perform_searchbox_query(driver, clean_q, mode_tag)
+                except (NoSuchWindowException, WebDriverException):
+                    print(f"[{mode_tag}] [!] Cửa sổ Google Chrome đã bị đóng hoặc mất kết nối. Dừng tiến trình.")
+                    break
             
             # Tự động từ chối/chấp nhận cookie dialog nếu hiển thị
             try:
@@ -391,7 +466,6 @@ def run_custom_keyword_scraper(queries=None, max_results=None, output_file=None,
             no_change_count = 0
             last_dom_count = 0
             
-            # Kiểm tra trường hợp tìm kiếm chuyển hướng thẳng tới 1 địa điểm cụ thể
             try:
                 curr_url = driver.current_url or ""
             except (NoSuchWindowException, WebDriverException):
@@ -399,7 +473,7 @@ def run_custom_keyword_scraper(queries=None, max_results=None, output_file=None,
                 break
 
             if "/maps/place/" in curr_url:
-                print(f"[{mode_tag}] Từ khóa '{query}' chuyển hướng trực tiếp tới 1 địa điểm cụ thể.")
+                print(f"[{mode_tag}] Liên kết chuyển hướng trực tiếp tới 1 địa điểm cụ thể.")
                 k = extract_unique_key(curr_url)
                 if not k or k not in existing_keys:
                     candidate_urls.append(curr_url)
@@ -407,6 +481,18 @@ def run_custom_keyword_scraper(queries=None, max_results=None, output_file=None,
                 for scroll_step in range(250):
                     if saved_count >= max_results or get_total_file_records(output_file) >= max_results:
                         break
+
+                    # Kiểm tra và tự động phục hồi nếu trong lúc cuộn bị SPA router chuyển hướng sang /maps/dir/
+                    if task_type == "query" and clean_q:
+                        try:
+                            c_url = driver.current_url or ""
+                            if "/maps/dir/" in c_url:
+                                print(f"[{mode_tag}] [!] Phát hiện dính trang Chỉ Đường (/maps/dir/) tại bước cuộn {scroll_step + 1}. Đang khôi phục lại trang tìm kiếm...")
+                                perform_searchbox_query(driver, clean_q, mode_tag)
+                        except (NoSuchWindowException, WebDriverException):
+                            break
+                        except Exception:
+                            pass
                         
                     # Ưu tiên bóc tách trực tiếp toàn bộ 100% thẻ class="hfpxzc" qua JavaScript Chrome DOM engine
                     try:
@@ -473,7 +559,8 @@ def run_custom_keyword_scraper(queries=None, max_results=None, output_file=None,
                         pass
                     time.sleep(1.8)
 
-            print(f"[{mode_tag}] Từ khóa '{query}': Thu thập được tổng cộng {len(candidate_urls)} link ứng viên độc nhất. Tiến hành bóc tách chi tiết...")
+            task_label = f"Liên kết URL '{task_val[:50]}...'" if task_type == "url" else f"Từ khóa '{task_val}'"
+            print(f"[{mode_tag}] {task_label}: Thu thập được tổng cộng {len(candidate_urls)} link ứng viên độc nhất. Tiến hành bóc tách chi tiết...")
             
             # GIAI ĐOẠN 2: BÓC TÁCH CHI TIẾT VÀ LƯU REAL-TIME
             for i, url in enumerate(candidate_urls):

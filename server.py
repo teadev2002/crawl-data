@@ -343,6 +343,19 @@ async def start_ai_checking():
     threading.Thread(target=run_command_stream, args=(["ai_checking.py", "--mode=bottom"], "AI_CHECK_BOTTOM", loop), daemon=True).start()
     return {"status": "success", "message": "Đã kích hoạt AI Checking song song 2 luồng (TOP & BOTTOM)!"}
 
+@app.post("/api/tasks/start/map_url_finder")
+async def start_map_url_finder(update_fields: str = "url"):
+    loop = asyncio.get_event_loop()
+    threading.Thread(target=run_command_stream, args=(["map_url_finder.py", "--mode=top", f"--update_fields={update_fields}"], "MAP_URL_TOP", loop), daemon=True).start()
+    threading.Thread(target=run_command_stream, args=(["map_url_finder.py", "--mode=bottom", f"--update_fields={update_fields}"], "MAP_URL_BOTTOM", loop), daemon=True).start()
+    return {"status": "success", "message": "Đã kích hoạt Tìm Link Google Maps URL (2 Tầng: Tên >50% HOẶC Trùng 8 Số Cuối SĐT) song song 2 luồng!"}
+
+@app.post("/api/tasks/start/vntour_harvester")
+async def start_vntour_harvester(province: str = "48,49"):
+    loop = asyncio.get_event_loop()
+    threading.Thread(target=run_command_stream, args=(["vntour_harvester.py", f"--province={province}"], "VNTOUR_HARVESTER", loop), daemon=True).start()
+    return {"status": "success", "message": f"Đã kích hoạt Cào VNtour CSDL Du Lịch Việt Nam (Mã tỉnh: {province})!"}
+
 @app.post("/api/tasks/start/custom_keyword_scraper")
 async def start_custom_keyword_scraper():
     loop = asyncio.get_event_loop()

@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initToolFiles() {
-        const tools = ['map', 'email', 'cat', 'info'];
+        const tools = ['map', 'email', 'cat', 'info', 'phone', 'star', 'aicheck', 'booking', 'mismatch', 'keyword', 'mapurl', 'vntour'];
         tools.forEach(key => {
             let saved = null;
             try {
@@ -68,9 +68,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (barEl) barEl.style.width = `${percent}%`;
     }
 
-    let progressTotals = { map: 100, email: 100, phone: 100, cat: 100, info: 10, star: 50, aicheck: 100 };
-    let progressCurrents = { map: 0, email: 0, phone: 0, cat: 0, info: 0, star: 0, aicheck: 0 };
-    let threadProgress = { phone_top: 0, phone_bottom: 0, aicheck_top: 0, aicheck_bottom: 0 };
+    let progressTotals = { map: 100, email: 100, phone: 100, cat: 100, info: 10, star: 50, aicheck: 100, mapurl: 100, vntour: 100 };
+    let progressCurrents = { map: 0, email: 0, phone: 0, cat: 0, info: 0, star: 0, aicheck: 0, mapurl: 0, vntour: 0 };
+    let threadProgress = { phone_top: 0, phone_bottom: 0, aicheck_top: 0, aicheck_bottom: 0, mapurl_top: 0, mapurl_bottom: 0 };
     let mapActiveThreads = new Set();
 
     function parseLogProgress(msg) {
@@ -90,7 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const fileMatch = msg.match(/Đang đọc file dữ liệu:\s*([^\s\n]+)/i) || msg.match(/File lưu dữ liệu:\s*([^\s\n]+)/i) || msg.match(/File dữ liệu làm việc:\s*([^\s\n]+)/i);
         if (fileMatch) {
             const activeFile = fileMatch[1].trim();
-            if (msg.includes('STAR_') || msg.includes('STAR_HARVESTER') || msg.includes('star_harvester') || msg.includes('Số Sao')) {
+            if (msg.includes('VNTOUR_HARVESTER') || msg.includes('vntour_harvester') || msg.includes('VNTour')) {
+                setToolFile('vntour', activeFile);
+                updateToolStatus('vntour', 'running', 'Đang cào VNTour');
+            } else if (msg.includes('MAP_URL_FINDER') || msg.includes('map_url_finder') || msg.includes('MAP_URL')) {
+                setToolFile('mapurl', activeFile);
+                updateToolStatus('mapurl', 'running', 'Đang tìm Map URL');
+            } else if (msg.includes('STAR_') || msg.includes('STAR_HARVESTER') || msg.includes('star_harvester') || msg.includes('Số Sao')) {
                 setToolFile('star', activeFile);
                 updateToolStatus('star', 'running', 'Đang tìm sao');
             } else if (msg.includes('AI_CHECKING') || msg.includes('ai_checking') || msg.includes('AI Checking')) {
@@ -334,6 +340,55 @@ document.addEventListener('DOMContentLoaded', () => {
             if (msg.includes('HOÀN THÀNH AI CHECKING!') || msg.includes('ai checking hoàn thành')) {
                 updateToolProgress('aicheck', progressTotals.aicheck, progressTotals.aicheck);
                 updateToolStatus('aicheck', 'completed', 'Hoàn thành');
+            }
+        }
+
+        // 10. MAP URL FINDER
+        const isMapUrlLog = msg.includes('MAP_URL_FINDER') || msg.includes('map_url_finder') || msg.includes('MAP_URL');
+        if (isMapUrlLog) {
+            const mapUrlTotalMatch = msg.match(/Tổng số bản ghi trong file:\s*(\d+)/i) || msg.match(/Tổng số bản ghi:\s*(\d+)/i);
+            if (mapUrlTotalMatch) {
+                const parsedVal = parseInt(mapUrlTotalMatch[1]);
+                if (parsedVal && parsedVal > 0) {
+                    progressTotals.mapurl = parsedVal;
+                    threadProgress.mapurl_top = 0;
+                    threadProgress.mapurl_bottom = 0;
+                    progressCurrents.mapurl = 0;
+                    updateToolProgress('mapurl', 0, progressTotals.mapurl);
+                    updateToolStatus('mapurl', 'running', 'Đang tìm Map URL');
+                }
+            }
+
+            if (msg.includes('HAPPY CASE') || msg.includes('WORST CASE') || msg.includes('Local Title Match Score')) {
+                if (msg.includes('TOP')) {
+                    threadProgress.mapurl_top += 1;
+                } else if (msg.includes('BOTTOM')) {
+                    threadProgress.mapurl_bottom += 1;
+                } else {
+                    threadProgress.mapurl_top += 1;
+                }
+                progressCurrents.mapurl = Math.min(progressTotals.mapurl, threadProgress.mapurl_top + threadProgress.mapurl_bottom);
+                updateToolProgress('mapurl', progressCurrents.mapurl, progressTotals.mapurl);
+                updateToolStatus('mapurl', 'running', 'Đang tìm Map URL');
+            }
+
+            if (msg.includes('HOÀN THÀNH TÌM LINK GOOGLE MAPS URL')) {
+                updateToolProgress('mapurl', progressTotals.mapurl, progressTotals.mapurl);
+                updateToolStatus('mapurl', 'completed', 'Hoàn thành');
+            }
+        }
+
+        // 11. VNTOUR HARVESTER
+        const isVntourLog = msg.includes('VNTOUR_HARVESTER') || msg.includes('vntour_harvester') || msg.includes('VNTour');
+        if (isVntourLog) {
+            const vntourProgMatch = msg.match(/Real-Time Save #(\d+)/i) || msg.match(/Đã lưu:\s*(\d+)/i);
+            if (vntourProgMatch) {
+                progressCurrents.vntour = parseInt(vntourProgMatch[1]);
+                updateToolProgress('vntour', progressCurrents.vntour, progressTotals.vntour);
+                updateToolStatus('vntour', 'running', 'Đang cào VNTour');
+            }
+            if (msg.includes('HOÀN THÀNH CÀO VNTOUR')) {
+                updateToolStatus('vntour', 'completed', 'Hoàn thành');
             }
         }
     }
@@ -939,6 +994,41 @@ document.addEventListener('DOMContentLoaded', () => {
             setToolFile('keyword', curFile);
             updateToolStatus('keyword', 'running', 'Đang cào từ khóa');
             triggerTask('start/custom_keyword_scraper');
+        });
+    }
+
+    const btnStartMapUrl = document.getElementById('btn-start-mapurl-action');
+    if (btnStartMapUrl) {
+        btnStartMapUrl.addEventListener('click', () => {
+            const curFile = getCurrentOutputFile();
+            setToolFile('mapurl', curFile);
+            if (allRecords && allRecords.length > 0) {
+                progressTotals.mapurl = allRecords.length;
+            }
+            threadProgress.mapurl_top = 0;
+            threadProgress.mapurl_bottom = 0;
+            progressCurrents.mapurl = 0;
+            updateToolProgress('mapurl', 0, progressTotals.mapurl);
+            updateToolStatus('mapurl', 'running', 'Đang tìm Map URL');
+
+            let fields = ['url'];
+            if (document.getElementById('chk-mapurl-address')?.checked) fields.push('address');
+            if (document.getElementById('chk-mapurl-website')?.checked) fields.push('website');
+            if (document.getElementById('chk-mapurl-category')?.checked) fields.push('categoryName');
+            const updateFieldsParam = fields.join(',');
+
+            triggerTask(`start/map_url_finder?update_fields=${encodeURIComponent(updateFieldsParam)}`);
+        });
+    }
+
+    const btnStartVntour = document.getElementById('btn-start-vntour-action');
+    if (btnStartVntour) {
+        btnStartVntour.addEventListener('click', () => {
+            const selectedProvince = document.getElementById('cfg-vntour-province')?.value || '48,49';
+            const curFile = getCurrentOutputFile();
+            setToolFile('vntour', curFile);
+            updateToolStatus('vntour', 'running', 'Đang cào VNTour');
+            triggerTask(`start/vntour_harvester?province=${encodeURIComponent(selectedProvince)}`);
         });
     }
 
